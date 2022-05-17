@@ -66,3 +66,34 @@
 ;; generalize
 (define xy+z '(exists y (atom (rel < (var x) (fn '+ (var y) (var z))))))
 (check-true (sentence? (generalize xy+z)))
+
+;; substitution in terms
+(define x≤y '(fn ≤ (var x) (var y)))
+(check-equal?
+ (tsubst (λ (x) (match x ['x '(fn |1|)])) x≤y)
+ '(fn ≤ ((fn |1|) (var y))))
+
+;; substituion in formulas
+(check-equal? 'x (variant 'x '(z y)))
+(check-equal? 'x^ (variant 'x '(x y)))
+(check-equal? 'x^^ (variant 'x '(x x^)))
+(define (sfn k)
+  (match k
+    ['y '(var x)]))
+(define qx=y '(forall x (atom (rel = (var x) (var y)))))
+(check-equal?
+ (subst sfn qx=y)
+ '(forall x^ (atom (rel = (var x^) (var x)))))
+(define qxx^y
+  '(forall
+    x
+    (forall
+     x^
+     (imp (atom (rel = (var x) (var y))) (atom (rel = (var x) (var x^)))))))
+(check-equal?
+ (subst sfn qxx^y)
+ '(forall
+   x^
+   (forall
+    x^^
+    (imp (atom (rel = (var x^) (var x))) (atom (rel = (var x^) (var x^^)))))))

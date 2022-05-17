@@ -3,6 +3,7 @@
 (require racket/match)
 (require racket/set)
 (require (only-in "set.rkt" unions))
+(require (only-in "fpf.rkt" tryapplyd undefine update))
 
 (provide (all-defined-out))
 ;; grammar of terms
@@ -99,3 +100,39 @@
      `(forall ,s ,f))
    fm
    (set->list (fv fm))))
+
+(define (tsubst sfn tm)
+  (match tm
+    [`(var ,vn)
+     (with-handlers ([exn:misc:match? (λ (e) tm)])
+       (sfn vn))]
+    [`(fn ,f ,@args)
+     `(fn ,f ,(map (λ (t) (tsubst sfn t)) args))]))
+
+(define (variant x vars)
+  (if (member x vars)
+      (variant
+       (string->symbol
+        (string-append (symbol->string x) "^"))
+       vars)
+      x))
+
+(define (subst subfn fm)
+  (match fm
+    [(or #t #f) fm]
+    [`(atom (rel ,rn ,@args))
+     `(atom (rel ,rn ,@(map (λ (a) (tsubst subfn a)) args)))]
+    [(list (and op (or 'and 'or 'imp 'iff)) f1 f2)
+     `(,op ,(subst subfn f1) ,(subst subfn f2))]
+    [(list (or 'forall 'exists) s f) (substq subfn 'forall s f)]))
+
+(define (substq subfn q x p)
+  (define x^
+    (if
+     (ormap
+      (λ (y) (set-member? (fvt (tryapplyd subfn y `(var ,y))) x))
+      (set->list (set-remove (fv p) x)))
+     (variant x (set->list (fv (subst (undefine x subfn) p))))
+     x))
+  (list q x^ (subst (update x `(var ,x^) subfn) p)))
+  
