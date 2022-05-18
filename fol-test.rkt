@@ -97,3 +97,45 @@
    (forall
     x^^
     (imp (atom (rel = (var x^) (var x))) (atom (rel = (var x^) (var x^^)))))))
+
+;; prenex normal form
+(define nnf-test
+  '(imp
+    (forall x (atom (rel P (var x))))
+    (iff
+     (exists y (atom (rel Q (var y))))
+     (exists z (and (atom (rel P (var z))) (atom (rel Q (var z))))))))
+(check-equal?
+ (nnf nnf-test)
+ '(or (exists x (not (atom (rel P (var x)))))
+      (or (and
+           (exists y (atom (rel Q (var y))))
+           (exists z (and (atom (rel P (var z))) (atom (rel Q (var z))))))
+          (and
+           (forall y (not (atom (rel Q (var y)))))
+           (forall z (or (not (atom (rel P (var z)))) (not (atom (rel Q (var z))))))))))
+(define prenex-test
+  '(imp
+    (forall x (or (atom (rel P (var x))) (atom (rel R (var y)))))
+    (exists
+     y
+     (exists
+      z
+      (or
+       (atom (rel Q (var y)))
+       (not
+        (exists
+         z
+         (and (atom (rel P (var z))) (atom (rel Q (var z)))))))))))
+
+(check-equal?
+ (pnf prenex-test)
+ '(exists
+   x
+   (forall
+    z
+    (or
+     (and (not (atom (rel P (var x)))) (not (atom (rel R (var y)))))
+     (or
+      (atom (rel Q (var x)))
+      (or (not (atom (rel P (var z)))) (not (atom (rel Q (var z))))))))))

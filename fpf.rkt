@@ -22,3 +22,7 @@
     (match k^
       [x #:when (equal? x k) v]
       [_ (f k^)])))
+
+(define (undefined k)
+  (match k
+    [x #:when #f '⊥]))
