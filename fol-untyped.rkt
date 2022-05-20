@@ -1,10 +1,10 @@
 #lang racket/base
 
 (require racket/match)
-(require racket/set)
-(require (only-in "set.rkt" unions))
+(require (only-in "set.rkt" unions subtract union))
 (require (only-in "fpf.rkt" tryapplyd undefine update undefined))
 (require (only-in "pl-untyped.rkt" psimplify1))
+(require (only-in "formula-untyped.rkt" atom-union))
 
 (provide (all-defined-out))
 ;; grammar of terms
@@ -13,19 +13,6 @@
 
 ;; grammar of fol
 ;; fol ::= (rel symbol term*)
-
-;; grammar of formula
-;; formula := #t
-;;          | #f
-;;          | (atom fol)
-;;          | (not formula)
-;;          | (and formula formula)
-;;          | (or formula formula)
-;;          | (imp formula formula)
-;;          | (iff formula formula)
-;;          | (forall symbol formula)
-;;          | (exists symbol formula)
-
 
 ;; chapter 3.3
 (define (termval func v tm)
@@ -66,33 +53,33 @@
 
 (define (fvt tm)
   (match tm
-    [`(var ,vn) (set vn)]
+    [`(var ,vn) `(,vn)]
     [`(fn ,f ,@args) (unions (map fvt args))]))
 
 (define (ground/term? tm)
-  (set-empty? (fvt tm)))
+  (null? (fvt tm)))
 
 (define (var fm)
   (match fm
-    [(or #t #f) (set)]
+    [(or #t #f) '()]
     [`(atom (rel ,rn ,@args)) (unions (map fvt args))]
     [`(not ,f) (var f)]
     [`(,(or 'and 'or 'imp 'iff) ,f1 ,f2) (unions `(,(var f1) ,(var f2)))]
-    [`(,(or 'forall 'exists) ,s ,f) (set-add (var f) s)]))
+    [`(,(or 'forall 'exists) ,s ,f) (union (var f) `(,s))]))
 
 (define (ground/formula? fm)
-  (set-empty? (var fm)))
+  (null? (var fm)))
 
 (define (fv fm)
   (match fm
-    [(or #t #f) (set)]
+    [(or #t #f) '()]
     [`(atom (rel ,rn ,@args)) (unions (map fvt args))]
     [`(not ,f) (fv f)]
     [`(,(or 'and 'or 'imp 'iff) ,f1 ,f2) (unions `(,(fv f1) ,(fv f2)))]
-    [`(,(or 'forall 'exists) ,s ,f) (set-remove (fv f) s)]))
+    [`(,(or 'forall 'exists) ,s ,f) (subtract (fv f) `(,s))]))
 
 (define (sentence? fm)
-  (set-empty? (fv fm)))
+  (null? (fv fm)))
 
 ;; chapter 3.4
 (define (generalize fm)
@@ -100,7 +87,7 @@
    (λ (s f)
      `(forall ,s ,f))
    fm
-   (set->list (fv fm))))
+   (fv fm)))
 
 (define (tsubst sfn tm)
   (match tm
@@ -108,7 +95,7 @@
      (with-handlers ([exn:misc:match? (λ (e) tm)])
        (sfn vn))]
     [`(fn ,f ,@args)
-     `(fn ,f ,(map (λ (t) (tsubst sfn t)) args))]))
+     `(fn ,f ,@(map (λ (t) (tsubst sfn t)) args))]))
 
 (define (variant x vars)
   (if (member x vars)
@@ -132,9 +119,9 @@
   (define x^
     (if
      (ormap
-      (λ (y) (set-member? (fvt (tryapplyd subfn y `(var ,y))) x))
-      (set->list (set-remove (fv p) x)))
-     (variant x (set->list (fv (subst (undefine x subfn) p))))
+      (λ (y) (member x (fvt (tryapplyd subfn y `(var ,y)))))
+      (subtract (fv p) `(,x)))
+     (variant x (fv (subst (undefine x subfn) p)))
      x))
   `(,q ,x^ ,(subst (update x `(var ,x^) subfn) p)))
 
@@ -142,7 +129,7 @@
   (match fm
     [`(,(or 'forall 'exists) ,s ,f)
      (if
-      (not (set-member? (fv f) s))
+      (not (member s (fv f)))
        f
        fm)]
     [_ (psimplify1 fm)]))
@@ -187,7 +174,7 @@
     [_ fm]))
 
 (define (pullq l r fm qf o x y p q)
-  (define z (variant x (set->list (fv fm))))
+  (define z (variant x (fv fm)))
   (define p^ (if l (subst (update x `(var ,z) undefined) p) p))
   (define q^ (if r (subst (update y `(var ,z) undefined) q) q))
   `(,qf ,z ,(pullquants `(,o ,p^ ,q^))))
@@ -199,3 +186,62 @@
     [_ fm]))
 
 (define pnf (compose prenex nnf simplify))
+
+(define (funcs tm)
+  (match tm
+    [`(var ,vn) '()]
+    [`(fn ,f ,@args)
+     (foldl
+      (λ (a r)
+        (union r (funcs a)))
+      `(,(cons f (length args)))
+      args)]))
+
+(define (functions fm)
+  (atom-union
+   (λ (a)
+     (match a
+       [`(rel ,p ,@args)
+        (foldl
+         (λ (arg r)
+           (union r (funcs arg)))
+         '()
+         args)]))
+   fm))
+
+(define (skolem fm fns)
+  (define (skolem2 o p q fns)
+    (define-values (p^ fns^) (skolem p fns))
+    (define-values (q^ fns^^) (skolem q fns^))
+    (values `(,o ,p^ ,q^) fns^^))
+  (match fm
+    [`(exists ,y ,p)
+     (define xs (fv fm))
+     (define f
+       (variant
+        (if (null? xs)
+            (string->symbol
+             (string-append "c_" (symbol->string y)))
+            (string->symbol
+             (string-append "f_" (symbol->string y))))
+        fns))
+     (define fx `(fn ,f ,@(map (λ (x) `(var ,x)) xs)))
+     (skolem (subst (update y fx undefined) p) (cons f fns))]
+    [`(forall ,x ,p)
+     (define-values (p^ fns^) (skolem p fns))
+     (values `(forall ,x ,p^) fns^)]
+    [`(,(and o (or 'and 'or)) ,p ,q) (skolem2 o p q fns)]
+    [_ (values fm fns)]))
+
+(define (askolemize fm)
+  (define-values (f _)
+    (skolem (nnf (simplify fm)) (map car (functions fm))))
+  f)
+
+(define (specialize fm)
+  (match fm
+    [`(forall ,x ,p) (specialize p)]
+    [_ fm]))
+
+(define skolemize
+  (compose specialize pnf askolemize))

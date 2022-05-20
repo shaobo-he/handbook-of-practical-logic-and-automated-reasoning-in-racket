@@ -71,7 +71,7 @@
 (define x≤y '(fn ≤ (var x) (var y)))
 (check-equal?
  (tsubst (λ (x) (match x ['x '(fn |1|)])) x≤y)
- '(fn ≤ ((fn |1|) (var y))))
+ '(fn ≤ (fn |1|) (var y)))
 
 ;; substituion in formulas
 (check-equal? 'x (variant 'x '(z y)))
@@ -139,3 +139,58 @@
      (or
       (atom (rel Q (var x)))
       (or (not (atom (rel P (var z)))) (not (atom (rel Q (var z))))))))))
+
+;; Skolemization
+(check-equal? (funcs *11) '((* . 2) (|1| . 0)))
+(check-equal?
+ (functions *11=0)
+ '((* . 2) (|0| . 0) (|1| . 0)))
+(check-true (null? (functions prenex-test)))
+(define skolem-test1
+  '(exists
+    y
+    (imp
+     (atom (rel < (var x) (var y)))
+     (forall
+      u
+      (exists
+       v
+       (atom
+        (rel
+         <
+         (fn * (var x) (var u))
+         (fn * (var y) (var v)))))))))
+
+(define skolem-test2
+  '(forall
+    x
+    (imp
+     (atom (rel P (var x)))
+     (exists
+      y
+      (exists
+       z
+       (or
+        (atom (rel Q (var y)))
+        (not
+         (exists
+          z
+          (and
+           (atom (rel P (var z)))
+           (atom (rel Q (var z))))))))))))
+(check-equal?
+ (skolemize skolem-test1)
+ '(or
+   (not (atom (rel < (var x) (fn f_y (var x)))))
+   (atom
+    (rel
+     <
+     (fn * (var x) (var u))
+     (fn * (fn f_y (var x)) (fn f_v (var x) (var u)))))))
+(check-equal?
+ (skolemize skolem-test2)
+ '(or
+   (not (atom (rel P (var x))))
+   (or
+    (atom (rel Q (fn c_y)))
+    (or (not (atom (rel P (var z)))) (not (atom (rel Q (var z))))))))
