@@ -9,20 +9,25 @@
 ;; ocaml implmentation
 
 (define (tryapplyd f k d)
-  (with-handlers ([exn:misc:match? (λ (e) d)])
-    (f k)))
+  (with-handlers ([exn:misc:match? (λ (e) d)]) (f k)))
 
 (define (undefine x f)
   (λ (k)
     (match k
-      [y #:when (not (equal? x k)) (f k)])))
+      [y
+       #:when (not (equal? x k))
+       (f k)])))
 
 (define (update k v f)
   (λ (k^)
     (match k^
-      [x #:when (equal? x k) v]
+      [x
+       #:when (equal? x k)
+       v]
       [_ (f k^)])))
 
 (define (undefined k)
   (match k
-    [x #:when #f '⊥]))
+    [x
+     #:when #f
+     '⊥]))

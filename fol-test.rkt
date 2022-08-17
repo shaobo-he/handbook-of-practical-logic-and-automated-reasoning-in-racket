@@ -6,7 +6,6 @@
 (require (only-in math/number-theory prime?))
 (require "fol-untyped.rkt")
 
-
 ;; domain, func, pred for Boolean and modulo n
 (define b-domain '(#t #f))
 
@@ -52,10 +51,12 @@
 (check-true (holds (m-domain 2) (m-func 2) (m-pred 2) v 0or1))
 (check-false (holds (m-domain 3) (m-func 3) (m-pred 3) v 0or1))
 
-(define mul-rev '(forall x (imp (not (atom (rel = (var x) (fn |0|)))) (exists y (atom (rel = (fn * (var x) (var y)) (fn |1|)))))))
-(check-equal?
- (filter (λ (n) (holds (m-domain n) (m-func n) (m-pred n) v mul-rev)) (range 1 45))
- (cons 1 (filter prime? (range 1 45))))
+(define mul-rev
+  '(forall x
+           (imp (not (atom (rel = (var x) (fn |0|))))
+                (exists y (atom (rel = (fn * (var x) (var y)) (fn |1|)))))))
+(check-equal? (filter (λ (n) (holds (m-domain n) (m-func n) (m-pred n) v mul-rev)) (range 1 45))
+              (cons 1 (filter prime? (range 1 45))))
 
 ;; groundness and sentence tests
 (check-true (ground/term? *11))
@@ -69,9 +70,11 @@
 
 ;; substitution in terms
 (define x≤y '(fn ≤ (var x) (var y)))
-(check-equal?
- (tsubst (λ (x) (match x ['x '(fn |1|)])) x≤y)
- '(fn ≤ (fn |1|) (var y)))
+(check-equal? (tsubst (λ (x)
+                        (match x
+                          ['x '(fn |1|)]))
+                      x≤y)
+              '(fn ≤ (fn |1|) (var y)))
 
 ;; substituion in formulas
 (check-equal? 'x (variant 'x '(z y)))
@@ -81,116 +84,63 @@
   (match k
     ['y '(var x)]))
 (define qx=y '(forall x (atom (rel = (var x) (var y)))))
-(check-equal?
- (subst sfn qx=y)
- '(forall x^ (atom (rel = (var x^) (var x)))))
+(check-equal? (subst sfn qx=y) '(forall x^ (atom (rel = (var x^) (var x)))))
 (define qxx^y
-  '(forall
-    x
-    (forall
-     x^
-     (imp (atom (rel = (var x) (var y))) (atom (rel = (var x) (var x^)))))))
+  '(forall x (forall x^ (imp (atom (rel = (var x) (var y))) (atom (rel = (var x) (var x^)))))))
 (check-equal?
  (subst sfn qxx^y)
- '(forall
-   x^
-   (forall
-    x^^
-    (imp (atom (rel = (var x^) (var x))) (atom (rel = (var x^) (var x^^)))))))
+ '(forall x^ (forall x^^ (imp (atom (rel = (var x^) (var x))) (atom (rel = (var x^) (var x^^)))))))
 
 ;; prenex normal form
 (define nnf-test
-  '(imp
-    (forall x (atom (rel P (var x))))
-    (iff
-     (exists y (atom (rel Q (var y))))
-     (exists z (and (atom (rel P (var z))) (atom (rel Q (var z))))))))
+  '(imp (forall x (atom (rel P (var x))))
+        (iff (exists y (atom (rel Q (var y))))
+             (exists z (and (atom (rel P (var z))) (atom (rel Q (var z))))))))
 (check-equal?
  (nnf nnf-test)
  '(or (exists x (not (atom (rel P (var x)))))
-      (or (and
-           (exists y (atom (rel Q (var y))))
-           (exists z (and (atom (rel P (var z))) (atom (rel Q (var z))))))
-          (and
-           (forall y (not (atom (rel Q (var y)))))
-           (forall z (or (not (atom (rel P (var z)))) (not (atom (rel Q (var z))))))))))
+      (or (and (exists y (atom (rel Q (var y))))
+               (exists z (and (atom (rel P (var z))) (atom (rel Q (var z))))))
+          (and (forall y (not (atom (rel Q (var y)))))
+               (forall z (or (not (atom (rel P (var z)))) (not (atom (rel Q (var z))))))))))
 (define prenex-test
-  '(imp
-    (forall x (or (atom (rel P (var x))) (atom (rel R (var y)))))
-    (exists
-     y
-     (exists
-      z
-      (or
-       (atom (rel Q (var y)))
-       (not
-        (exists
-         z
-         (and (atom (rel P (var z))) (atom (rel Q (var z)))))))))))
+  '(imp (forall x (or (atom (rel P (var x))) (atom (rel R (var y)))))
+        (exists y
+                (exists z
+                        (or (atom (rel Q (var y)))
+                            (not (exists z (and (atom (rel P (var z))) (atom (rel Q (var z)))))))))))
 
-(check-equal?
- (pnf prenex-test)
- '(exists
-   x
-   (forall
-    z
-    (or
-     (and (not (atom (rel P (var x)))) (not (atom (rel R (var y)))))
-     (or
-      (atom (rel Q (var x)))
-      (or (not (atom (rel P (var z)))) (not (atom (rel Q (var z))))))))))
+(check-equal? (pnf prenex-test)
+              '(exists x
+                       (forall z
+                               (or (and (not (atom (rel P (var x)))) (not (atom (rel R (var y)))))
+                                   (or (atom (rel Q (var x)))
+                                       (or (not (atom (rel P (var z))))
+                                           (not (atom (rel Q (var z))))))))))
 
 ;; Skolemization
 (check-equal? (funcs *11) '((* . 2) (|1| . 0)))
-(check-equal?
- (functions *11=0)
- '((* . 2) (|0| . 0) (|1| . 0)))
+(check-equal? (functions *11=0) '((* . 2) (|0| . 0) (|1| . 0)))
 (check-true (null? (functions prenex-test)))
 (define skolem-test1
-  '(exists
-    y
-    (imp
-     (atom (rel < (var x) (var y)))
-     (forall
-      u
-      (exists
-       v
-       (atom
-        (rel
-         <
-         (fn * (var x) (var u))
-         (fn * (var y) (var v)))))))))
+  '(exists y
+           (imp (atom (rel < (var x) (var y)))
+                (forall u (exists v (atom (rel < (fn * (var x) (var u)) (fn * (var y) (var v)))))))))
 
 (define skolem-test2
-  '(forall
-    x
-    (imp
-     (atom (rel P (var x)))
-     (exists
-      y
-      (exists
-       z
-       (or
-        (atom (rel Q (var y)))
-        (not
-         (exists
-          z
-          (and
-           (atom (rel P (var z)))
-           (atom (rel Q (var z))))))))))))
+  '(forall x
+           (imp (atom (rel P (var x)))
+                (exists y
+                        (exists z
+                                (or (atom (rel Q (var y)))
+                                    (not (exists z
+                                                 (and (atom (rel P (var z)))
+                                                      (atom (rel Q (var z))))))))))))
 (check-equal?
  (skolemize skolem-test1)
- '(or
-   (not (atom (rel < (var x) (fn f_y (var x)))))
-   (atom
-    (rel
-     <
-     (fn * (var x) (var u))
-     (fn * (fn f_y (var x)) (fn f_v (var x) (var u)))))))
-(check-equal?
- (skolemize skolem-test2)
- '(or
-   (not (atom (rel P (var x))))
-   (or
-    (atom (rel Q (fn c_y)))
-    (or (not (atom (rel P (var z)))) (not (atom (rel Q (var z))))))))
+ '(or (not (atom (rel < (var x) (fn f_y (var x)))))
+      (atom (rel < (fn * (var x) (var u)) (fn * (fn f_y (var x)) (fn f_v (var x) (var u)))))))
+(check-equal? (skolemize skolem-test2)
+              '(or (not (atom (rel P (var x))))
+                   (or (atom (rel Q (fn c_y)))
+                       (or (not (atom (rel P (var z)))) (not (atom (rel Q (var z))))))))
