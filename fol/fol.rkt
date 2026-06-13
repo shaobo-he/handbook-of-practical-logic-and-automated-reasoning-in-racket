@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; fol.fs --- first-order logic: terms, semantics, free variables,
+;; fol --- first-order logic: terms, semantics, free variables,
 ;; substitution, and function-symbol collection.
 ;;
 ;; Terms:    (var x) | (fn f t ...)

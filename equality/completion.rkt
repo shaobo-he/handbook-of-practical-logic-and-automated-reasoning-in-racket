@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; completion.fs --- Knuth-Bendix completion: critical pairs, orientation
+;; completion --- Knuth-Bendix completion: critical pairs, orientation
 ;; by a term ordering, the completion loop (deferring non-orientable
 ;; equations), and interreduction.
 

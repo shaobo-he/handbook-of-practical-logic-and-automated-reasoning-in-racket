@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; rewrite.fs --- rewriting terms with a list of equations, at depth and to
+;; rewrite --- rewriting terms with a list of equations, at depth and to
 ;; normal form (top-down, leftmost-outermost).
 
 (require racket/match)

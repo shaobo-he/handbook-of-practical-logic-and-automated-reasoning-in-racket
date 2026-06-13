@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; complex.fs --- quantifier elimination for algebraically closed fields
+;; complex --- quantifier elimination for algebraically closed fields
 ;; (Tarski-style, via pseudo-division and sign management).
 ;;
 ;; Canonical polynomials are nested in the head variable:

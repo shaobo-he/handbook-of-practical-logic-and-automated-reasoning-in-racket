@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; geom.fs --- geometry theorem proving by coordinate translation and a
+;; geom --- geometry theorem proving by coordinate translation and a
 ;; trivial version of Wu's method (triangulation + pseudo-division).
 
 (require racket/match)

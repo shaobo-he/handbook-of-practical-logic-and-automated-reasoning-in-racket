@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; eqelim.fs --- equality elimination: Brand's S/T/E modifications and the
+;; eqelim --- equality elimination: Brand's S/T/E modifications and the
 ;; Brand transformation, fed into MESON (bmeson); plus emeson via axioms.
 
 (require racket/match)
@@ -15,7 +15,7 @@
 
 (provide (all-defined-out))
 
-;; List.find that raises when nothing matches (Harrison semantics)
+;; find that raises (rather than returning #f) when nothing matches
 (define (list-find pred l)
   (or (findf pred l) (error 'list-find "find")))
 

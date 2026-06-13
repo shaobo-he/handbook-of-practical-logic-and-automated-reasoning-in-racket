@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; propexamples.fs --- families of propositional formulas: Ramsey numbers,
+;; propexamples --- families of propositional formulas: Ramsey numbers,
 ;; ripple-carry / carry-select adders, multipliers, and primality.
 
 (require racket/match)

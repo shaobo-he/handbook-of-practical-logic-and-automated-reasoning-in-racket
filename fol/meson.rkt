@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; meson.fs --- the MESON model-elimination procedure (Stickel's PTTP
+;; meson --- the MESON model-elimination procedure (Stickel's PTTP
 ;; style): contrapositives + Prolog-style extension with ancestor
 ;; resolution, then a version with repetition checking and
 ;; divide-and-conquer search.

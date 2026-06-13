@@ -1,10 +1,10 @@
 #lang racket/base
 
-;; prolog.fs --- backchaining for Horn clauses and a toy Prolog.
+;; prolog --- backchaining for Horn clauses and a toy Prolog.
 ;;
-;; Harrison's parserule/simpleprolog/prolog take rules as strings parsed
-;; with the concrete-syntax reader. This port has no string parser (it uses
-;; s-expressions as the AST), so a "rule" is given directly as a pair
+;; In the book, prolog rules are written in a concrete string syntax and
+;; parsed. This port has no string parser (s-expressions are the AST), so a
+;; "rule" is given directly as a pair
 ;;   (asm . head)
 ;; where `asm` is a list of body literal-formulas and `head` is the head
 ;; literal-formula; a goal is a single literal-formula.

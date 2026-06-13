@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; grobner.fs --- Grobner basis algorithm and a universal decision procedure
+;; grobner --- Grobner basis algorithm and a universal decision procedure
 ;; for algebraically closed fields (with the Rabinowitsch trick).
 ;;
 ;; Polynomials here are lists of monomials (coeff . exponent-list), one

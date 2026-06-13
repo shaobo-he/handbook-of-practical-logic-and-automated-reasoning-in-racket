@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; folderived.fs --- derived first-order inference rules: equality symmetry/
+;; folderived --- derived first-order inference rules: equality symmetry/
 ;; transitivity, congruence, substitution (isubst), alpha-conversion, and
 ;; universal specialization (ispec/spec), all on the LCF kernel.
 

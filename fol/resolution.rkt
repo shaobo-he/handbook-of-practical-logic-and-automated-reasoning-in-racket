@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; resolution.fs --- binary resolution with factoring, subsumption and
+;; resolution --- binary resolution with factoring, subsumption and
 ;; tautology deletion, positive (P1) resolution, and set-of-support.
 
 (require racket/match)

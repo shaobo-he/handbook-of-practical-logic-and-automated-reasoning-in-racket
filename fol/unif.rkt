@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; unif.fs --- syntactic unification of first-order terms.
+;; unif --- syntactic unification of first-order terms.
 ;;
 ;; A unifier `env` is a partial function (hash) from variable name to term.
 ;; `unify` builds a possibly-triangular env; `solve` normalizes it to an

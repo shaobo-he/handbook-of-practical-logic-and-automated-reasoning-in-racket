@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; tableaux.fs --- a Prawitz-style procedure and an analytic tableau
+;; tableaux --- a Prawitz-style procedure and an analytic tableau
 ;; procedure with unification and iterative deepening.
 
 (require racket/match)

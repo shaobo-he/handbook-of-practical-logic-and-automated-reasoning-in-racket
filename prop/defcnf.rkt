@@ -1,8 +1,8 @@
 #lang racket/base
 
-;; defcnf.fs --- definitional (Tseitin) conjunctive normal form.
+;; defcnf --- definitional (Tseitin) conjunctive normal form.
 ;;
-;; Instead of F#'s (fm, defs, n) triple threaded through every call, we
+;; Instead of threading an (fm, defs, n) triple through every call, we
 ;; keep the fresh-variable counter in a box and the subformula->definition
 ;; map in a mutable hash. maincnf etc. then return just the replacement
 ;; formula and mutate that shared state.

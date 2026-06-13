@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; formulas.fs --- generic syntax operations and printing for the
+;; formulas --- generic syntax operations and printing for the
 ;; polymorphic formula type, shared by propositional and first-order
 ;; logic.
 ;;
@@ -61,7 +61,7 @@
     [`(or ,p ,q) (append (disjuncts p) (disjuncts q))]
     [_ (list fm)]))
 
-;; end-itlist f [x] = x ; f x1 (f x2 (... xn))  (a right reduce)
+;; right-associative reduce of a non-empty list: (f x1 (f x2 (... xn)))
 (define (end-itlist f l)
   (cond
     [(null? l) (error 'end-itlist "empty list")]
@@ -98,7 +98,7 @@
   (setify (overatoms (λ (h t) (append (f h) t)) fm '())))
 
 ;; ===== pretty printer =====
-;; Produces Harrison's ASCII concrete syntax: ~ /\ \/ ==> <=> forall exists.
+;; Produces the usual ASCII logic syntax: ~ /\ \/ ==> <=> forall exists.
 
 ;; collect a run of like quantifiers: (forall x (forall y p)) -> ((x y), p)
 (define (strip-quant fm)

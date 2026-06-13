@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; stal.fs --- a simple implementation of Stalmarck's algorithm.
+;; stal --- a simple implementation of Stalmarck's algorithm.
 ;; (NB the real method is patented for commercial use; this is a toy.)
 
 (require racket/match)

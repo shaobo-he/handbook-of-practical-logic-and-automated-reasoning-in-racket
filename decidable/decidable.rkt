@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; decidable.fs --- decidable subsets of first-order logic: the AE fragment
+;; decidable --- decidable subsets of first-order logic: the AE fragment
 ;; (aedecide / Wang), finite-model decision, the finite-model property, and
 ;; the monadic fragment. Plus Aristotelean syllogisms.
 

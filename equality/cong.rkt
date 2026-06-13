@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; cong.fs --- congruence closure, and a decision procedure for the
+;; cong --- congruence closure, and a decision procedure for the
 ;; satisfiability of ground equations/inequations (and hence validity of
 ;; universal formulas over equality).
 

@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; combining.fs --- the Nelson-Oppen combined decision procedure.
+;; combining --- the Nelson-Oppen combined decision procedure.
 ;;
 ;; A "language" is a list (fn-pred pred-pred decision-proc): which function
 ;; and predicate symbols it owns, and a procedure that decides its formulas.

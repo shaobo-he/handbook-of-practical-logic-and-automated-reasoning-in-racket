@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; lcf.fs --- an LCF-style kernel for a Tarski/Hilbert system of first-order
+;; lcf --- an LCF-style kernel for a Tarski/Hilbert system of first-order
 ;; logic. A "theorem" is just a formula, but (by convention) one only ever
 ;; produced through these primitive inference rules and axiom schemes.
 

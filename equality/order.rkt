@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; order.fs --- term orderings: term size and the lexicographic path order
+;; order --- term orderings: term size and the lexicographic path order
 ;; (LPO), with a convenient precedence-from-a-list weighting.
 
 (require racket/match)

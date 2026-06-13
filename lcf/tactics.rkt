@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; tactics.fs --- a goal/tactic interactive proof system on the LCF kernel,
+;; tactics --- a goal/tactic interactive proof system on the LCF kernel,
 ;; plus a small declarative-proof (Mizar-style) layer.
 ;;
 ;; A goal bundles a list of subgoals (each (assumptions . conclusion)) with a

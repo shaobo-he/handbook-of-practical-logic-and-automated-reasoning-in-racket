@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; lcfprop.fs --- derived propositional inference rules on top of the LCF
+;; lcfprop --- derived propositional inference rules on top of the LCF
 ;; kernel, culminating in an LCF-style tableau tautology prover (lcftaut).
 
 (require racket/match)

@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; skolem.fs --- first-order simplification, negation normal form,
+;; skolem --- first-order simplification, negation normal form,
 ;; prenex normal form, and Skolemization.
 
 (require racket/match)

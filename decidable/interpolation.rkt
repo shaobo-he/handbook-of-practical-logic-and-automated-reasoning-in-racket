@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; interpolation.fs --- Craig-Robinson interpolation (Kreisel-Krivine style),
+;; interpolation --- Craig-Robinson interpolation (Kreisel-Krivine style),
 ;; built up from propositional, to universal, to fully general formulas, and
 ;; finally lifted to logic with equality.
 

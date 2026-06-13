@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; intro.fs --- the introductory chapter's toy algebraic-expression
+;; intro --- the introductory chapter's toy algebraic-expression
 ;; language: a datatype, a simplifier, and a lexer/parser/printer.
 ;;
 ;; Expressions are s-expressions: (var s) | (const n) | (add a b) | (mul a b)

@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; paramodulation.fs --- paramodulation: rewriting with (non-oriented)
+;; paramodulation --- paramodulation: rewriting with (non-oriented)
 ;; equations inside clauses during the resolution loop.
 
 (require racket/match)

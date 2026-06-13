@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; equal.fs --- first-order logic with equality: equality axioms and the
+;; equal --- first-order logic with equality: equality axioms and the
 ;; reduction of equality reasoning to ordinary first-order proving.
 
 (require racket/match)

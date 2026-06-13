@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; real.fs --- quantifier elimination for real-closed fields, via the
+;; real --- quantifier elimination for real-closed fields, via the
 ;; Cohen-Hormander algorithm (sign matrices over a set of polynomials).
 
 (require racket/match)

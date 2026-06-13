@@ -1,9 +1,9 @@
 #lang racket/base
 
-;; cooper.fs --- Cooper's algorithm for Presburger arithmetic.
+;; cooper --- Cooper's algorithm for Presburger arithmetic.
 ;;
 ;; Numerals are nullary function terms whose symbol is the number's text,
-;; e.g. (fn |3|). Racket's exact integers replace the OCaml `num` library.
+;; e.g. (fn |3|). Racket's exact integers provide the arbitrary-precision arithmetic.
 ;; Linear terms are kept canonical: c1*x1 + ... + cn*xn + k, encoded as
 ;; (fn + (fn * c x) rest) ending in the constant k.
 

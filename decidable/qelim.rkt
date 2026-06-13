@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; qelim.fs --- the generic quantifier-elimination framework (lift_qelim,
+;; qelim --- the generic quantifier-elimination framework (lift_qelim,
 ;; cnnf) and a worked instance for dense linear orders without endpoints.
 
 (require racket/match)

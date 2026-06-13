@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; lcffol.fs --- an LCF-style first-order prover: a tableau refutation that
+;; lcffol --- an LCF-style first-order prover: a tableau refutation that
 ;; builds an actual kernel proof, with Skolemization handled by deferred
 ;; (CPS) proof construction and later de-Skolemization.
 

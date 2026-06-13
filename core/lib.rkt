@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; lib.fs --- general library: sets (as duplicate-free lists) and
+;; lib --- general library: sets (as duplicate-free lists) and
 ;; finite partial functions.
 
 (require racket/set)

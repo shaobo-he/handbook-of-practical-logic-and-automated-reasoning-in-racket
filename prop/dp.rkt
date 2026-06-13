@@ -1,11 +1,11 @@
 #lang racket/base
 
-;; dp.fs --- the Davis-Putnam (DP) and Davis-Putnam-Logemann-Loveland
+;; dp --- the Davis-Putnam (DP) and Davis-Putnam-Logemann-Loveland
 ;; (DPLL) satisfiability procedures, plus the iterative trail-based
 ;; versions with backtracking (dpli) and backjumping/learning (dplb).
 ;;
-;; Where F# uses `failwith`/`try` to signal "rule not applicable", we let
-;; each rule return #f instead and dispatch with `cond ... =>`.
+;; Each rule returns #f to signal "rule not applicable" (rather than raising),
+;; so they dispatch cleanly with `cond ... =>`.
 
 (require racket/match)
 (require racket/set)

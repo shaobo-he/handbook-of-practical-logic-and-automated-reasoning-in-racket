@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; limitations.fs --- the limitative results: Goedel numbering and
+;; limitations --- the limitative results: Goedel numbering and
 ;; diagonalization, the Delta-decider and Sigma/Pi/Delta classification, the
 ;; Sigma_1 verifier, Turing machines, and the Robinson ground-term evaluator.
 ;;

@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; herbrand.fs --- the link between first-order and propositional logic:
+;; herbrand --- the link between first-order and propositional logic:
 ;; Herbrand's theorem realized as ground-instance enumeration, giving a
 ;; Gilmore procedure and a first-order Davis-Putnam procedure.
 
@@ -14,7 +14,7 @@
 
 (provide (all-defined-out))
 
-;; when #t, herbloop reports progress (matches Harrison's printout)
+;; when #t, herbloop reports progress (number of ground instances tried)
 (define herbrand-verbose (make-parameter #f))
 
 ;; ===== propositional valuation of a first-order atom set =====

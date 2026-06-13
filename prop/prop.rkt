@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; prop.fs --- propositional logic: evaluation, truth tables, tautology
+;; prop --- propositional logic: evaluation, truth tables, tautology
 ;; checking, simplification, NNF/NENF, and DNF/CNF.
 
 (require racket/match)

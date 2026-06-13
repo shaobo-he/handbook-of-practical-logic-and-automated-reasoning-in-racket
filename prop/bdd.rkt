@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; bdd.fs --- binary decision diagrams with complement edges, and BDD-based
+;; bdd --- binary decision diagrams with complement edges, and BDD-based
 ;; tautology checking (plain and with shared definitions).
 ;;
 ;; A BDD bundles a unique table (node -> id), an expand table (id -> node),

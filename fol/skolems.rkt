@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; skolems.fs --- Skolemizing a *set* of formulas simultaneously, renaming
+;; skolems --- Skolemizing a *set* of formulas simultaneously, renaming
 ;; function symbols apart first.
 
 (require racket/match)
