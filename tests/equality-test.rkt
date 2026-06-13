@@ -47,3 +47,16 @@
 (check-true (lpo-gt w '(fn f (var x)) '(var x))) ; f(x) > x  (subterm)
 (check-true (weight '(a b) '(b . 0) '(a . 0))) ; b > a
 (check-false (weight '(a b) '(a . 0) '(b . 0)))
+(check-true (lpo-gt w '(fn g (var x)) '(fn f (var x)))) ; g(x) > f(x) by precedence
+(check-false (lpo-gt w '(fn f (var x)) '(fn g (var x))))
+
+;; ===== more equality coverage =====
+;; constants (arity 0) get no congruence axiom
+(check-equal? (function-congruence (cons 'c 0)) '())
+;; congruence closure decides transitivity of equality
+(check-true (ccvalid '(imp (and (atom (rel = (var a) (var b))) (atom (rel = (var b) (var c))))
+                           (atom (rel = (var a) (var c))))))
+;; rewriting to normal form with an idempotence rule  f(f(x)) = f(x)
+(check-equal? (rewrite (list '(atom (rel = (fn f (fn f (var x))) (fn f (var x)))))
+                       '(fn f (fn f (fn f (var a)))))
+              '(fn f (var a)))

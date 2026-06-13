@@ -68,3 +68,30 @@
 ;; ===== Robinson ground-term evaluation produces a kernel proof of 2+2=4 =====
 (define ev (robeval '(fn + (fn S (fn S (fn |0|))) (fn S (fn S (fn |0|))))))
 (check-equal? (rhs (consequent (concl ev))) (numeral 4))
+
+;; ===== more LCF / derived-rule / limitations coverage =====
+;; another tautology, and kernel-derived equality theorems
+(check-equal? (concl (lcftaut '(or (atom (rel p)) (not (atom (rel p))))))
+              '(or (atom (rel p)) (not (atom (rel p)))))
+(check-equal? (concl (eq-sym '(fn a) '(fn b)))
+              '(imp (atom (rel = (fn a) (fn b))) (atom (rel = (fn b) (fn a)))))
+(check-equal? (concl (ispec '(fn c) '(forall x (atom (rel P (var x))))))
+              '(imp (forall x (atom (rel P (var x)))) (atom (rel P (fn c)))))
+;; a tactic proof using universal introduction
+(check-equal? (concl (prove '(forall x (imp (atom (rel P (var x))) (atom (rel P (var x)))))
+                            (list (λ (g) (forall-intro-tac "y" g))
+                                  (λ (g) (imp-intro-tac "h" g))
+                                  (λ (g) (auto-tac by (list "h") g)))))
+              '(forall x (imp (atom (rel P (var x))) (atom (rel P (var x))))))
+;; lcffol on another valid formula (nonempty-domain instantiation)
+(check-equal? (concl (lcffol '(imp (forall x (atom (rel P (var x))))
+                                   (exists y (atom (rel P (var y)))))))
+              '(imp (forall x (atom (rel P (var x)))) (exists y (atom (rel P (var y))))))
+;; Pi classification, Goedel-number distinctness, tape primitives, multiplication
+(check-true (classify 'pi 1 '(forall x (atom (rel = (var x) (var x))))))
+(check-false (= (gnumeral 1) (gnumeral 2)))
+(check-equal? (look (twrite 'one (list 'tape 0 (hash)))) 'one)
+(check-equal? (look (move 'right (twrite 'one (list 'tape 0 (hash))))) 'blank)
+(check-equal?
+ (rhs (consequent (concl (robeval '(fn * (fn S (fn S (fn S (fn |0|)))) (fn S (fn |0|)))))))
+ (numeral 3))

@@ -90,7 +90,7 @@ complex/real/grobner), `chapter5b` (geom/interpolation/combining),
 `lcf` (lcf/lcfprop/folderived/lcffol/tactics/limitations),
 `pelletier` (a selection of Pelletier's problems run through the provers).
 
-Run the whole suite with `raco test tests/` (369 checks).
+Run the whole suite with `raco test tests/` (399 checks).
 
 ## Status
 

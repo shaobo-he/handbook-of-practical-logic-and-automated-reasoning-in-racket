@@ -37,3 +37,14 @@
 ;; refute within the easiness limit, rather than returning #f
 (check-exn exn:fail? (λ () (stalmarck '(or (atom p) (atom q)))))
 (check-true (stalmarck (mk-adder-test 2 1)))
+
+;; ===== more intro coverage =====
+(check-equal? (parse-exp "x + y * z") '(add (var "x") (mul (var "y") (var "z")))) ; * binds tighter
+(check-equal? (simplify (parse-exp "1 * x")) '(var "x"))
+(check-exn exn:fail? (λ () (parse-exp "(1 + 2"))) ; missing close paren
+
+;; ===== more primality / BDD / Stalmarck =====
+(check-true (bddtaut (prime 2)))
+(check-false (bddtaut (prime 4)))
+(check-true (bddtaut '(imp (and (atom p) (atom q)) (atom p))))
+(check-true (stalmarck '(imp (and (imp (atom p) (atom q)) (atom p)) (atom q)))) ; modus ponens

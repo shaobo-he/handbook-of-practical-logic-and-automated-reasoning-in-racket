@@ -79,3 +79,27 @@
                             (atom (rel = (fn ^ (var b) (fn |2|)) (fn |2|))))
                        (atom (rel = (fn * (fn - (var a) (var b)) (fn + (var a) (var b))) (fn |0|)))))
  #t)
+
+;; ===== more decision-procedure coverage (incl. negative cases) =====
+;; aedecide refutes a non-valid AE formula
+(check-false (aedecide '(forall x (atom (rel P (var x))))))
+;; decide-finite: P(x) is not valid; excluded middle is
+(check-false (decide-finite 1 '(atom (rel P (var x)))))
+(check-true (decide-finite 2 '(or (atom (rel P (var x))) (not (atom (rel P (var x)))))))
+;; DLO trichotomy is valid
+(check-equal? (quelim-dlo '(forall x
+                                   (forall y
+                                           (or (atom (rel < (var x) (var y)))
+                                               (or (atom (rel = (var x) (var y)))
+                                                   (atom (rel < (var y) (var x))))))))
+              #t)
+;; Presburger: no integer x with 2x = 1
+(check-equal? (integer-qelim '(exists x (atom (rel = (fn * (fn |2|) (var x)) (fn |1|))))) #f)
+;; complex: x^3 = 1 is solvable over C
+(check-equal? (complex-qelim '(exists x (atom (rel = (fn ^ (var x) (fn |3|)) (fn |1|))))) #t)
+;; real: x^2 > 0 does NOT hold for all x (x = 0 is a counterexample)
+(check-equal? (real-qelim '(forall x (atom (rel > (fn ^ (var x) (fn |2|)) (fn |0|))))) #f)
+;; grobner: x = y ==> x*z = y*z
+(check-equal? (grobner-decide '(imp (atom (rel = (var x) (var y)))
+                                    (atom (rel = (fn * (var x) (var z)) (fn * (var y) (var z))))))
+              #t)
