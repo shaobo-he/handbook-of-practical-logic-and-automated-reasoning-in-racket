@@ -1,0 +1,101 @@
+#lang racket/base
+
+;; Unit tests for the lib utilities: sets, list helpers, finite partial
+;; functions, and the union-find ("partition") structure.
+
+(require rackunit)
+(require "../core/lib.rkt")
+
+;; ===== sets (duplicate-free lists; order-independent, so sort to compare) =====
+(check-equal? (sort (setify '(3 1 2 1 3 2)) <) '(1 2 3))
+(check-equal? (sort (unions '((1 2) (2 3) (3 4))) <) '(1 2 3 4))
+(check-equal? (sort (union '(1 2 3) '(2 3 4)) <) '(1 2 3 4))
+(check-equal? (sort (intersect '(1 2 3) '(2 3 4)) <) '(2 3))
+(check-equal? (sort (subtract '(1 2 3 4) '(2 4)) <) '(1 3))
+(check-true (subset '(1 2) '(1 2 3)))
+(check-false (subset '(1 2 3) '(1 2)))
+(check-true (psubset '(1 2) '(1 2 3)))
+(check-false (psubset '(1 2) '(1 2)))
+(check-true (set-eq '(1 2 3) '(3 2 1)))
+(check-false (set-eq '(1 2) '(1 2 3)))
+(check-equal? (sort (image (lambda (x) (* x x)) '(1 2 3 2)) <) '(1 4 9))
+(check-equal? (insert 5 '(1 2)) '(5 1 2))
+(check-equal? (insert 1 '(1 2)) '(1 2))
+
+;; ===== combinatorial helpers =====
+(check-equal? (allpairs + '(1 2) '(10 20)) '(11 21 12 22))
+(check-equal? (distinctpairs '(1 2 3)) '((1 . 2) (1 . 3) (2 . 3)))
+(check-equal? (length (allsubsets '(1 2 3))) 8)
+(check-equal? (length (allnonemptysubsets '(1 2 3))) 7)
+(check-equal? (length (allsets 2 '(1 2 3))) 3)
+(check-equal? (allsets 0 '(1 2)) '(()))
+(check-equal? (allsets 2 '(1)) '())
+
+;; ===== list helpers =====
+(check-equal? (let-values ([(a b) (chop-list 2 '(1 2 3 4))])
+                (list a b))
+              '((1 2) (3 4)))
+(check-equal? (index 'c '(a b c d)) 2)
+(check-exn exn:fail? (lambda () (index 'z '(a b))))
+(check-equal? (butlast '(1 2 3)) '(1 2))
+(check-equal? (insertat 1 'x '(a b c)) '(a x b c))
+(check-equal? (insertat 0 'x '(a)) '(x a))
+(check-true (earlier '(a b c) 'a 'b))
+(check-false (earlier '(a b c) 'b 'a))
+(check-equal? (funpow 3 add1 0) 3)
+(check-equal? (funpow 0 add1 5) 5)
+(check-equal? (first 0 (lambda (n) (> n 3))) 4)
+(check-equal? (minimize (lambda (x) (* x x)) '(-2 1 3)) 1)
+(check-equal? (maximize (lambda (x) (* x x)) '(-2 1 3)) 3)
+(check-true (can car '(1 2)))
+(check-false (can car '()))
+(check-true ((non even?) 3))
+(check-false ((non even?) 4))
+(check-equal? (tryfind (lambda (x)
+                         (if (even? x)
+                             x
+                             (error "odd")))
+                       '(1 3 4 5))
+              4)
+(check-exn exn:fail?
+           (lambda ()
+             (tryfind (lambda (x)
+                        (if (even? x)
+                            x
+                            (error "odd")))
+                      '(1 3 5))))
+(check-equal? (mapfilter (lambda (x)
+                           (if (even? x)
+                               (* x 10)
+                               (error "odd")))
+                         '(1 2 3 4))
+              '(20 40))
+(check-equal? (repeat (lambda (x)
+                        (if (< x 5)
+                            (add1 x)
+                            (error "done")))
+                      0)
+              5)
+
+;; ===== finite partial functions (hash-based) =====
+(check-false (defined undefined 'a))
+(check-equal? (apply (update 'a 1 undefined) 'a) 1)
+(check-true (defined (update 'a 1 undefined) 'a))
+(check-equal? (tryapplyd undefined 'a 99) 99)
+(check-equal? (tryapplyd (update 'a 1 undefined) 'a 99) 1)
+(check-equal? (tryapplyl undefined 'a) '())
+(check-false (defined (undefine 'a (update 'a 1 undefined)) 'a))
+(check-equal? (apply (fpf '(a b) '(1 2)) 'b) 2)
+(check-equal? (sort (dom (fpf '(a b) '(1 2))) symbol<?) '(a b))
+(check-equal? (length (graph (fpf '(a b) '(1 2)))) 2)
+(check-equal? (apply (mapf add1 (fpf '(a) '(5))) 'a) 6)
+
+;; ===== union-find =====
+(check-false (equivalent unequal 'a 'b))
+(check-equal? (canonize unequal 'a) 'a)
+(let ([e (equate (cons 'a 'b) unequal)])
+  (check-true (equivalent e 'a 'b))
+  (check-false (equivalent e 'a 'c)))
+(let ([e (equate (cons 'b 'c) (equate (cons 'a 'b) unequal))])
+  (check-true (equivalent e 'a 'c)) ; transitive
+  (check-true (subset '(a b c) (equated e))))

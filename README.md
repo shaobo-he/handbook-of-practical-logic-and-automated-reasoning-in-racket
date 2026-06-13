@@ -87,7 +87,10 @@ Tests (run `racket tests/<file>-test.rkt`): `prop`, `fol`, `dp`, `unif`, `herbra
 `completion` (completion/eqelim/paramodulation/skolems),
 `extras` (intro/propexamples/stal/bdd), `decidable` (decidable/qelim/cooper/
 complex/real/grobner), `chapter5b` (geom/interpolation/combining),
-`lcf` (lcf/lcfprop/folderived/lcffol/tactics/limitations).
+`lcf` (lcf/lcfprop/folderived/lcffol/tactics/limitations),
+`pelletier` (a selection of Pelletier's problems run through the provers).
+
+Run the whole suite with `raco test tests/` (369 checks).
 
 ## Status
 

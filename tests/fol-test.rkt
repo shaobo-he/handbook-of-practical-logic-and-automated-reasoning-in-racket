@@ -139,3 +139,10 @@
               '(or (not (atom (rel P (var x))))
                    (or (atom (rel Q (fn c_y)))
                        (or (not (atom (rel P (var z)))) (not (atom (rel Q (var z))))))))
+
+;; ===== free / all variables, simplify =====
+(check-equal? (sort (fvt '(fn f (var x) (fn g (var y)))) symbol<?) '(x y))
+(check-equal? (sort (var '(forall x (atom (rel P (var x) (var y))))) symbol<?) '(x y))
+(check-equal? (fv '(forall x (atom (rel P (var x) (var y))))) '(y)) ; bound x not free
+(check-equal? (simplify '(forall x (atom (rel P)))) '(atom (rel P))) ; vacuous quantifier dropped
+(check-equal? (simplify '(and #t (atom (rel P)))) '(atom (rel P)))

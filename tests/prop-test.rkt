@@ -51,5 +51,23 @@
 ;; ===== printer =====
 (check-equal? (prop-formula->string '(imp (atom p) (and (atom q) (atom r)))) "p ==> q /\\ r")
 (check-equal? (prop-formula->string '(and (or (atom p) (atom q)) (atom r))) "(p \\/ q) /\\ r")
-;; matches Harrison: prefix operands print at precedence 11, so nested ~ brackets
+;; prefix operands print at precedence 11, so nested ~ brackets
 (check-equal? (prop-formula->string '(not (not (atom p)))) "~(~p)")
+
+;; ===== more evaluation =====
+(check-true (eval '(iff (atom p) (atom q)) (v->fn '((p . #t) (q . #t)))))
+(check-false (eval '(or (atom p) (atom q)) (v->fn '((p . #f) (q . #f)))))
+(check-false (eval '(not (atom p)) (v->fn '((p . #t)))))
+
+;; ===== NNF / NENF shape =====
+(check-equal? (nnf '(imp (atom p) (atom q))) '(or (not (atom p)) (atom q)))
+(check-equal? (nenf '(not (imp (atom p) (atom q)))) '(and (atom p) (not (atom q))))
+(check-equal? (nenf '(not (iff (atom p) (atom q)))) '(iff (atom p) (not (atom q)))) ; NENF keeps <=>
+
+;; ===== psubst (subfn is a partial function atom -> formula) =====
+(check-equal? (psubst (hash 'p '(atom q)) '(and (atom p) (atom r))) '(and (atom q) (atom r)))
+
+;; ===== more tautology / satisfiability =====
+(check-true (tautology '(imp (atom p) (or (atom p) (atom q)))))
+(check-true (satisfiable '(iff (atom p) (atom q))))
+(check-false (tautology '(imp (or (atom p) (atom q)) (and (atom p) (atom q)))))
