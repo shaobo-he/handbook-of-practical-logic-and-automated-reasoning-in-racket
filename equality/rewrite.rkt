@@ -13,7 +13,7 @@
 ;; rewrite once at the top with the first applicable equation
 (define (rewrite1 eqs t)
   (match eqs
-    [(cons `(atom (rel = ,l ,r)) oeqs)
+    [`((atom (rel = ,l ,r)) . ,oeqs)
      (with-handlers ([exn:fail? (λ (e) (rewrite1 oeqs t))])
        (tsubst (term-match undefined (list (cons l t))) r))]
     [_ (error 'rewrite1 "rewrite1")]))

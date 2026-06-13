@@ -35,7 +35,7 @@
 (define (backchain rules n k env goals)
   (match goals
     ['() env]
-    [(cons g gs)
+    [`(,g . ,gs)
      (if (= n 0)
          (error 'prolog "Too deep")
          (tryfind

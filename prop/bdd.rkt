@@ -26,7 +26,7 @@
   (if (>= n 0)
       (tryapplyd (bdd-expand b) n (list empty-prop 1 1))
       (match (tryapplyd (bdd-expand b) (- n) (list empty-prop 1 1))
-        [(list p l r) (list p (- l) (- r))])))
+        [`(,p ,l ,r) (list p (- l) (- r))])))
 
 (define (lookup-unique b node)
   (with-handlers ([exn:fail? (λ (e)
@@ -39,7 +39,7 @@
     (values b (apply (bdd-unique b) node))))
 
 (define (mk-node b slr)
-  (match-define (list s l r) slr)
+  (match-define `(,s ,l ,r) slr)
   (cond
     [(= l r) (values b l)]
     [(>= l 0) (lookup-unique b (list s l r))]
@@ -75,8 +75,8 @@
      (if cached
          (values bddcomp cached)
          (let ()
-           (match-define (list p1 l1 r1) (expand-node b m1))
-           (match-define (list p2 l2 r2) (expand-node b m2))
+           (match-define `(,p1 ,l1 ,r1) (expand-node b m1))
+           (match-define `(,p2 ,l2 ,r2) (expand-node b m2))
            (define-values (p lpair rpair)
              (cond
                [(equal? p1 p2) (values p1 (cons l1 l2) (cons r1 r2))]
@@ -177,7 +177,7 @@
 (define (mkbdds sfn bddcomp defs fm)
   (match defs
     ['() (mkbdde sfn bddcomp fm)]
-    [(cons pe odefs)
+    [`(,pe . ,odefs)
      (let-values ([(bc* b) (mkbdde sfn bddcomp (cdr pe))])
        (mkbdds (update (car pe) b sfn) bc* odefs fm))]))
 

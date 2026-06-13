@@ -42,7 +42,7 @@
 ;; consume the longest prefix satisfying prop; returns (values prefix-chars rest)
 (define (lexwhile prop inp)
   (match inp
-    [(cons c cs)
+    [`(,c . ,cs)
      #:when (prop c)
      (let-values ([(tok rest) (lexwhile prop cs)])
        (values (cons c tok) rest))]
@@ -53,7 +53,7 @@
   (let-values ([(_ rest) (lexwhile space inp)])
     (match rest
       ['() '()]
-      [(cons c cs)
+      [`(,c . ,cs)
        (define prop
          (cond
            [(alphanumeric c) alphanumeric]
@@ -66,7 +66,7 @@
 (define (parse-expression i)
   (let-values ([(e1 i1) (parse-product i)])
     (match i1
-      [(cons "+" i1b)
+      [`("+" . ,i1b)
        (let-values ([(e2 i2) (parse-expression i1b)])
          (values `(add ,e1 ,e2) i2))]
       [_ (values e1 i1)])))
@@ -74,7 +74,7 @@
 (define (parse-product i)
   (let-values ([(e1 i1) (parse-atom i)])
     (match i1
-      [(cons "*" i1b)
+      [`("*" . ,i1b)
        (let-values ([(e2 i2) (parse-product i1b)])
          (values `(mul ,e1 ,e2) i2))]
       [_ (values e1 i1)])))
@@ -82,12 +82,12 @@
 (define (parse-atom i)
   (match i
     ['() (error 'parse "Expected an expression at end of input")]
-    [(cons "(" i1)
+    [`("(" . ,i1)
      (let-values ([(e2 i2) (parse-expression i1)])
        (match i2
-         [(cons ")" i3) (values e2 i3)]
+         [`(")" . ,i3) (values e2 i3)]
          [_ (error 'parse "Expected closing bracket")]))]
-    [(cons tok i1)
+    [`(,tok . ,i1)
      (if (andmap numeric (string->list tok))
          (values `(const ,(string->number tok)) i1)
          (values `(var ,tok) i1))]))

@@ -63,7 +63,7 @@
 (define (listify f l cont n defs)
   (match l
     ['() (cont '() n defs)]
-    [(cons h t)
+    [`(,h . ,t)
      (f h (λ (h* n2 d2) (listify f t (λ (t* n3 d3) (cont (cons h* t*) n3 d3)) n2 d2)) n defs)]))
 
 ;; ===== homogenization =====
@@ -118,14 +118,14 @@
      (if (null? fms)
          '()
          (error 'langpartition "langpartition"))]
-    [(cons l ls)
+    [`(,l . ,ls)
      (define-values (fms1 fms2) (partition (λ (fm) (belongs l fm)) fms))
      (cons fms1 (langpartition ls fms2))]))
 
 ;; ===== arrangements of variable partitions =====
 (define (arreq l)
   (match l
-    [(list* v1 v2 rest) (cons (mk-eq `(var ,v1) `(var ,v2)) (arreq (cons v2 rest)))]
+    [`(,v1 ,v2 . ,rest) (cons (mk-eq `(var ,v1) `(var ,v2)) (arreq (cons v2 rest)))]
     [_ '()]))
 
 (define (arrangement part)
@@ -173,7 +173,7 @@
       (p '())
       (match l
         ['() (error 'findasubset "findasubset")]
-        [(cons h t)
+        [`(,h . ,t)
          (with-handlers ([exn:fail? (λ (e) (findasubset p m t))])
            (findasubset (λ (s) (p (cons h s))) (- m 1) t))])))
 

@@ -55,7 +55,7 @@
   (match* (l1 l2)
     [('() x) x]
     [(x '()) x]
-    [((cons (cons c1 m1) o1) (cons (cons c2 m2) o2))
+    [(`((,c1 . ,m1) . ,o1) `((,c2 . ,m2) . ,o2))
      (cond
        [(equal? m1 m2)
         (define c (+ c1 c2))
@@ -72,14 +72,14 @@
 (define (mpoly-mul l1 l2)
   (match l1
     ['() '()]
-    [(cons h1 t1) (mpoly-add (mpoly-mmul h1 l2) (mpoly-mul t1 l2))]))
+    [`(,h1 . ,t1) (mpoly-add (mpoly-mmul h1 l2) (mpoly-mul t1 l2))]))
 
 (define (mpoly-pow vars l n)
   (funpow n (λ (z) (mpoly-mul l z)) (mpoly-const vars 1)))
 
 (define (mpoly-inv p)
   (match p
-    [(list (cons c m))
+    [`((,c . ,m))
      #:when (andmap (λ (i) (= i 0)) m)
      (list (cons (/ 1 c) m))]
     [_ (error 'mpoly-inv "non-constant polynomial")]))
@@ -108,7 +108,7 @@
 (define (reduce1 cm pol)
   (match pol
     ['() (error 'reduce1 "reduce1")]
-    [(cons hm cms)
+    [`(,hm . ,cms)
      (define cm* (mdiv cm hm))
      (mpoly-mmul (cons (- (car cm*)) (cdr cm*)) cms)]))
 
@@ -118,7 +118,7 @@
 (define (reduce pols pol)
   (match pol
     ['() '()]
-    [(cons cm ptl)
+    [`(,cm . ,ptl)
      (with-handlers ([exn:fail? (λ (e) (cons cm (reduce pols ptl)))])
        (reduce pols (mpoly-add (reduceb cm pols) ptl)))]))
 
@@ -127,7 +127,7 @@
   (match* (pol1 pol2)
     [('() _) '()]
     [(_ '()) '()]
-    [((cons m1 ptl1) (cons m2 ptl2))
+    [(`(,m1 . ,ptl1) `(,m2 . ,ptl2))
      (define m (mlcm m1 m2))
      (mpoly-sub (mpoly-mmul (mdiv m m1) ptl1) (mpoly-mmul (mdiv m m2) ptl2))]))
 
@@ -136,7 +136,7 @@
     (printf "~a basis elements and ~a pairs\n" (length basis) (length pairs)))
   (match pairs
     ['() basis]
-    [(cons p1p2 opairs)
+    [`(,p1p2 . ,opairs)
      (define sp (reduce basis (spoly (car p1p2) (cdr p1p2))))
      (cond
        [(null? sp) (grobner basis opairs)]

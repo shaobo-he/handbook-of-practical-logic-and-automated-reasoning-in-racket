@@ -21,7 +21,7 @@
 (define (skolems fms corr)
   (match fms
     ['() (values '() corr)]
-    [(cons p ofms)
+    [`(,p . ,ofms)
      (define-values (p* corr*) (skolem (rename-form p) corr))
      (define-values (ps* corr**) (skolems ofms corr*))
      (values (cons p* ps*) corr**)]))

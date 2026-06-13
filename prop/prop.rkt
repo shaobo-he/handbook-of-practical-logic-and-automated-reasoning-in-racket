@@ -39,7 +39,7 @@
 (define (onallvaluations subfn v ats)
   (match ats
     ['() (subfn v)]
-    [(cons p ps)
+    [`(,p . ,ps)
      (define (v^ t)
        (λ (q)
          (if (equal? q p)
@@ -104,9 +104,9 @@
     ['(not #f) #t]
     ['(not #t) #f]
     [`(not (not ,p)) p]
-    [(cons (and o (or 'and 'or 'iff)) (or (list p #f) (list #f p))) (v o #f p `(not ,p))]
-    [(cons (and o (or 'and 'or 'iff)) (or (list p #t) (list #t p))) (v o p #t p)]
-    [(cons 'imp (or (list #f p) (list p #t))) #t]
+    [`(,(and o (or 'and 'or 'iff)) . ,(or (list p #f) (list #f p))) (v o #f p `(not ,p))]
+    [`(,(and o (or 'and 'or 'iff)) . ,(or (list p #t) (list #t p))) (v o p #t p)]
+    [`(imp . ,(or (list #f p) (list p #t))) #t]
     [`(imp #t ,p) p]
     [`(imp ,p #f) `(not ,p)]
     [_ fm]))
@@ -114,7 +114,7 @@
 (define (psimplify fm)
   (match fm
     [`(not ,p) (psimplify1 `(not ,(psimplify p)))]
-    [(list (and o (or 'and 'or 'imp 'iff)) p q) (psimplify1 `(,o ,(psimplify p) ,(psimplify q)))]
+    [`(,(and o (or 'and 'or 'imp 'iff)) ,p ,q) (psimplify1 `(,o ,(psimplify p) ,(psimplify q)))]
     [_ fm]))
 
 ;; ===== literals =====
@@ -179,7 +179,7 @@
      (if (subfn v)
          (list v)
          '())]
-    [(cons p ps)
+    [`(,p . ,ps)
      (define (v^ t)
        (λ (q)
          (if (equal? q p)

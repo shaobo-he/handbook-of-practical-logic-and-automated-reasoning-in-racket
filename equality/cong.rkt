@@ -35,7 +35,7 @@
 ;; ===== congruence of two terms under an equivalence =====
 (define (congruent eqv st)
   (match st
-    [(cons `(fn ,f ,@a1) `(fn ,g ,@a2))
+    [`((fn ,f ,@a1) . (fn ,g ,@a2))
      (and (equal? f g) (= (length a1) (length a2)) (andmap (λ (x y) (equivalent eqv x y)) a1 a2))]
     [_ #f]))
 

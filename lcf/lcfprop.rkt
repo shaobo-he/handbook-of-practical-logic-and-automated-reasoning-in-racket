@@ -16,7 +16,7 @@
                (axiom-addimp p p)))
 
 (define (imp-unduplicate th)
-  (match-define (cons p pq) (dest-imp (concl th)))
+  (match-define `(,p . ,pq) (dest-imp (concl th)))
   (define q (consequent pq))
   (modusponens (modusponens (axiom-distribimp p p q) th) (imp-refl p)))
 
@@ -33,26 +33,26 @@
   (modusponens (axiom-addimp (concl th) p) th))
 
 (define (imp-add-assum p th)
-  (match-define (cons q r) (dest-imp (concl th)))
+  (match-define `(,q . ,r) (dest-imp (concl th)))
   (modusponens (axiom-distribimp p q r) (add-assum p th)))
 
 (define (imp-trans th1 th2)
   (modusponens (imp-add-assum (antecedent (concl th1)) th2) th1))
 
 (define (imp-insert q th)
-  (match-define (cons p r) (dest-imp (concl th)))
+  (match-define `(,p . ,r) (dest-imp (concl th)))
   (imp-trans th (axiom-addimp r q)))
 
 (define (imp-swap th)
-  (match-define (cons p qr) (dest-imp (concl th)))
-  (match-define (cons q r) (dest-imp qr))
+  (match-define `(,p . ,qr) (dest-imp (concl th)))
+  (match-define `(,q . ,r) (dest-imp qr))
   (imp-trans (axiom-addimp q p) (modusponens (axiom-distribimp p q r) th)))
 
 (define (imp-trans-th p q r)
   (imp-trans (axiom-addimp `(imp ,q ,r) p) (axiom-distribimp p q r)))
 
 (define (imp-add-concl r th)
-  (match-define (cons p q) (dest-imp (concl th)))
+  (match-define `(,p . ,q) (dest-imp (concl th)))
   (modusponens (imp-swap (imp-trans-th p q r)) th))
 
 (define (imp-swap-th p q r)
@@ -68,15 +68,15 @@
   (imp-unduplicate (imp-trans th (imp-swap ith))))
 
 (define (iff-imp1 th)
-  (match-define (cons p q) (dest-iff (concl th)))
+  (match-define `(,p . ,q) (dest-iff (concl th)))
   (modusponens (axiom-iffimp1 p q) th))
 
 (define (iff-imp2 th)
-  (match-define (cons p q) (dest-iff (concl th)))
+  (match-define `(,p . ,q) (dest-iff (concl th)))
   (modusponens (axiom-iffimp2 p q) th))
 
 (define (imp-antisym th1 th2)
-  (match-define (cons p q) (dest-imp (concl th1)))
+  (match-define `(,p . ,q) (dest-imp (concl th1)))
   (modusponens (modusponens (axiom-impiff p q) th1) th2))
 
 (define (right-doubleneg th)
@@ -109,7 +109,7 @@
 (define truth (modusponens (iff-imp2 axiom-true) (imp-refl #f)))
 
 (define (contrapos th)
-  (match-define (cons p q) (dest-imp (concl th)))
+  (match-define `(,p . ,q) (dest-imp (concl th)))
   (imp-trans (imp-trans (iff-imp1 (axiom-not q)) (imp-add-concl #f th)) (iff-imp2 (axiom-not p))))
 
 (define (and-left p q)
@@ -124,7 +124,7 @@
 
 (define (conjths fm)
   (with-handlers ([exn:fail? (λ (e) (list (imp-refl fm)))])
-    (match-define (cons p q) (dest-and fm))
+    (match-define `(,p . ,q) (dest-and fm))
     (cons (and-left p q) (map (λ (t) (imp-trans (and-right p q) t)) (conjths q)))))
 
 (define (and-pair p q)
@@ -134,12 +134,12 @@
   (modusponens th3 (imp-swap (imp-refl `(imp ,p (imp ,q #f))))))
 
 (define (shunt th)
-  (match-define (cons p q) (dest-and (antecedent (concl th))))
+  (match-define `(,p . ,q) (dest-and (antecedent (concl th))))
   (modusponens (foldr imp-add-assum th (list p q)) (and-pair p q)))
 
 (define (unshunt th)
-  (match-define (cons p qr) (dest-imp (concl th)))
-  (match-define (cons q r) (dest-imp qr))
+  (match-define `(,p . ,qr) (dest-imp (concl th)))
+  (match-define `(,q . ,r) (dest-imp qr))
   (imp-trans-chain (list (and-left p q) (and-right p q)) th))
 
 (define (iff-def p q)
@@ -167,7 +167,7 @@
         (imp-add-concl #f (imp-insert p (imp-refl q)))))
 
 (define (imp-false-rule th)
-  (match-define (cons p r) (dest-imp (concl th)))
+  (match-define `(,p . ,r) (dest-imp (concl th)))
   (imp-trans-chain (imp-false-conseqs p (funpow 2 antecedent r)) th))
 
 (define (imp-true-rule th1 th2)
@@ -189,9 +189,9 @@
   (if (= n 0)
       (imp-refl fm)
       (let ()
-        (match-define (cons p qr) (dest-imp fm))
+        (match-define `(,p . ,qr) (dest-imp fm))
         (define th1 (imp-add-assum p (imp-front-th (- n 1) qr)))
-        (match-define (cons q2 r2) (dest-imp (funpow 2 consequent (concl th1))))
+        (match-define `(,q2 . ,r2) (dest-imp (funpow 2 consequent (concl th1))))
         (imp-trans th1 (imp-swap-th p q2 r2)))))
 
 (define (imp-front n th)
@@ -208,15 +208,15 @@
 
 (define (lcfptab fms lits)
   (match fms
-    [(cons #f fl) (ex-falso (foldr mk-imp #f (append fl lits)))]
-    [(cons (and fm `(imp ,p ,q)) fl)
+    [`(#f . ,fl) (ex-falso (foldr mk-imp #f (append fl lits)))]
+    [`(,(and fm `(imp ,p ,q)) . ,fl)
      #:when (equal? p q)
      (add-assum fm (lcfptab fl lits))]
-    [(cons `(imp (imp ,p ,q) #f) fl) (imp-false-rule (lcfptab (cons p (cons `(imp ,q #f) fl)) lits))]
-    [(cons `(imp ,p ,q) fl)
+    [`((imp (imp ,p ,q) #f) . ,fl) (imp-false-rule (lcfptab (cons p (cons `(imp ,q #f) fl)) lits))]
+    [`((imp ,p ,q) . ,fl)
      #:when (not (equal? q #f))
      (imp-true-rule (lcfptab (cons `(imp ,p #f) fl) lits) (lcfptab (cons q fl) lits))]
-    [(cons p fl)
+    [`(,p . ,fl)
      #:when (literal? p)
      (if (member (negatef p) lits)
          (let ()
@@ -224,7 +224,7 @@
            (define th (imp-contr p (foldr mk-imp #f (cdr l2))))
            (foldr imp-insert th (append fl l1)))
          (imp-front (length fl) (lcfptab fl (cons p lits))))]
-    [(cons fm fl)
+    [`(,fm . ,fl)
      (define th (eliminate-connective fm))
      (imp-trans th (lcfptab (cons (consequent (concl th)) fl) lits))]
     ['() (error 'lcfptab "no contradiction")]))

@@ -34,9 +34,9 @@
 ;; ===== unify complementary literals =====
 (define (unify-complementsf env pp)
   (match pp
-    [(cons `(atom (rel ,p1 ,@a1)) `(imp (atom (rel ,p2 ,@a2)) #f))
+    [`((atom (rel ,p1 ,@a1)) . (imp (atom (rel ,p2 ,@a2)) #f))
      (unify env (list (cons `(fn ,p1 ,@a1) `(fn ,p2 ,@a2))))]
-    [(cons `(imp (atom (rel ,p1 ,@a1)) #f) `(atom (rel ,p2 ,@a2)))
+    [`((imp (atom (rel ,p1 ,@a1)) #f) . (atom (rel ,p2 ,@a2)))
      (unify env (list (cons `(fn ,p1 ,@a1) `(fn ,p2 ,@a2))))]
     [_ (error 'unify-complementsf "unify_complementsf")]))
 
@@ -70,10 +70,10 @@
   (define e (car es))
   (ex-falso (foldr (λ (fm acc) (mk-imp (onformula e fm) acc)) (cdr es) fms)))
 (define ((complits* fms+lits i) es)
-  (match-define (cons (cons p fl) lits) fms+lits)
+  (match-define `((,p . ,fl) . ,lits) fms+lits)
   (define e (car es))
   (define-values (l1 rest) (chop-list i lits))
-  (match-define (cons p* l2) rest)
+  (match-define `(,p* . ,l2) rest)
   (foldr (λ (fm acc) (imp-insert (onformula e fm) acc))
          (imp-contr (onformula e p) (foldr (λ (fm acc) (mk-imp (onformula e fm) acc)) (cdr es) l2))
          (append fl l1)))
@@ -87,18 +87,18 @@
       (error 'lcftab "no proof")
       (match fms
         ['() (error 'lcftab "No contradiction")]
-        [(cons #f fl) (cont (ex-falso* (append fl lits)) esk)]
-        [(cons (and fm `(imp ,p ,q)) fl)
+        [`(#f . ,fl) (cont (ex-falso* (append fl lits)) esk)]
+        [`(,(and fm `(imp ,p ,q)) . ,fl)
          #:when (equal? p q)
          (lcftab skofun fl lits n (λ (thp e2) (cont (add-assum* fm thp) e2)) esk)]
-        [(cons `(imp (imp ,p ,q) #f) fl)
+        [`((imp (imp ,p ,q) #f) . ,fl)
          (lcftab skofun
                  (cons p (cons `(imp ,q #f) fl))
                  lits
                  n
                  (λ (thp e2) (cont (imp-false-rule* thp) e2))
                  esk)]
-        [(cons `(imp ,p ,q) fl)
+        [`((imp ,p ,q) . ,fl)
          #:when (not (equal? q #f))
          (lcftab
           skofun
@@ -108,8 +108,8 @@
           (λ (th e2)
             (lcftab skofun (cons q fl) lits n (λ (thp e3) (cont (imp-true-rule* th thp) e3)) e2))
           esk)]
-        [(cons (and p (or `(atom ,_) `(imp (atom ,_) #f))) fl)
-         (match-define (list env sks k) esk)
+        [`(,(and p (or `(atom ,_) `(imp (atom ,_) #f))) . ,fl)
+         (match-define `(,env ,sks ,k) esk)
          (with-handlers ([exn:fail? (λ (ex)
                                       (lcftab skofun
                                               fl
@@ -121,8 +121,8 @@
                        (define env* (unify-complementsf env (cons p p*)))
                        (cont (complits* (cons fms lits) (index p* lits)) (list env* sks k)))
                      lits))]
-        [(cons (and fm `(forall ,x ,p)) fl)
-         (match-define (list env sks k) esk)
+        [`(,(and fm `(forall ,x ,p)) . ,fl)
+         (match-define `(,env ,sks ,k) esk)
          (define y `(var ,(string->symbol (string-append "X_" (number->string k)))))
          (lcftab skofun
                  (append (cons (subst (update x y undefined) p) fl) (list fm))
@@ -130,8 +130,8 @@
                  (- n 1)
                  (λ (thp e2) (cont (spec* y fm (length fms) thp) e2))
                  (list env sks (+ k 1)))]
-        [(cons `(imp ,(and yp `(forall ,y ,p)) #f) fl)
-         (match-define (list env sks k) esk)
+        [`((imp ,(and yp `(forall ,y ,p)) #f) . ,fl)
+         (match-define `(,env ,sks ,k) esk)
          (define fx (skofun yp))
          (define p* (subst (update y fx undefined) p))
          (define skh `(imp ,p* (forall ,y ,p)))
@@ -142,7 +142,7 @@
                  n
                  (λ (thp e2) (cont (deskol* skh thp) e2))
                  (list env sks* k))]
-        [(cons fm fl)
+        [`(,fm . ,fl)
          (define fm* (consequent (concl (eliminate-connective fm))))
          (lcftab skofun
                  (cons fm* fl)
@@ -197,15 +197,15 @@
 ;; ===== matching =====
 (define (form-match fp env)
   (match fp
-    [(cons #f #f) env]
-    [(cons #t #t) env]
-    [(cons `(atom (rel ,p ,@pa)) `(atom (rel ,q ,@qa)))
+    [`(#f . #f) env]
+    [`(#t . #t) env]
+    [`((atom (rel ,p ,@pa)) . (atom (rel ,q ,@qa)))
      (term-match env (list (cons `(fn ,p ,@pa) `(fn ,q ,@qa))))]
-    [(cons `(not ,p1) `(not ,p2)) (form-match (cons p1 p2) env)]
-    [(cons `(,(and o (or 'and 'or 'imp 'iff)) ,p1 ,q1) `(,o2 ,p2 ,q2))
+    [`((not ,p1) . (not ,p2)) (form-match (cons p1 p2) env)]
+    [`((,(and o (or 'and 'or 'imp 'iff)) ,p1 ,q1) . (,o2 ,p2 ,q2))
      #:when (eq? o o2)
      (form-match (cons p1 p2) (form-match (cons q1 q2) env))]
-    [(cons `(,(and qf (or 'forall 'exists)) ,x1 ,p1) `(,qf2 ,x2 ,p2))
+    [`((,(and qf (or 'forall 'exists)) ,x1 ,p1) . (,qf2 ,x2 ,p2))
      #:when (and (eq? qf qf2) (equal? x1 x2))
      (define z (variant x1 (union (fv p1) (fv p2))))
      (define (inst-fn f)
@@ -225,7 +225,7 @@
     [`(forall ,y ,p) `(imp (imp ,(subst (update y (cdr ap-fx) undefined) p) (forall ,y ,p)) ,q)]))
 
 (define (simpcont thp esk)
-  (match-define (list env sks k) esk)
+  (match-define `(,env ,sks ,k) esk)
   (define (ifn tm)
     (tsubst (solve env) tm))
   (thp (cons ifn (onformula ifn (foldr mk-skol #f sks)))))
@@ -243,7 +243,7 @@
     [_ (error 'elim-skolemvar "elim_skolemvar")]))
 
 (define (deskolcont thp esk)
-  (match-define (list env sks k) esk)
+  (match-define `(,env ,sks ,k) esk)
   (define (ifn tm)
     (tsubst (solve env) tm))
   (define isk (setify (map (λ (pt) (cons (onformula ifn (car pt)) (ifn (cdr pt)))) sks)))

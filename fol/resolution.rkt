@@ -34,7 +34,7 @@
 ;; ===== most general unifier of a list of literals =====
 (define (mgu l env)
   (match l
-    [(list* a b rest) (mgu (cons b rest) (unify-literals env (cons a b)))]
+    [`(,a ,b . ,rest) (mgu (cons b rest) (unify-literals env (cons a b)))]
     [_ (solve env)]))
 
 (define (unifiable p q)
@@ -81,7 +81,7 @@
 (define (resloop001 used unused)
   (match unused
     ['() (error 'resolution "No proof found")]
-    [(cons cl ros)
+    [`(,cl . ,ros)
      (when (resolution-verbose)
        (printf "~a used; ~a unused.\n" (length used) (length unused)))
      (define used* (insert cl used))
@@ -101,11 +101,11 @@
 (define (term-match env eqs)
   (match eqs
     ['() env]
-    [(cons (cons `(fn ,f ,@fa) `(fn ,g ,@ga)) oth)
+    [`(((fn ,f ,@fa) . (fn ,g ,@ga)) . ,oth)
      (if (and (equal? f g) (= (length fa) (length ga)))
          (term-match env (append (map cons fa ga) oth))
          (error 'term-match "term_match"))]
-    [(cons (cons `(var ,x) t) oth)
+    [`(((var ,x) . ,t) . ,oth)
      (cond
        [(not (defined env x)) (term-match (update x t env) oth)]
        [(equal? (apply env x) t) (term-match env oth)]
@@ -114,9 +114,9 @@
 
 (define (match-literals env tmp)
   (match tmp
-    [(cons `(atom (rel ,p ,@a1)) `(atom (rel ,q ,@a2)))
+    [`((atom (rel ,p ,@a1)) . (atom (rel ,q ,@a2)))
      (term-match env (list (cons `(fn ,p ,@a1) `(fn ,q ,@a2))))]
-    [(cons `(not (atom (rel ,p ,@a1))) `(not (atom (rel ,q ,@a2))))
+    [`((not (atom (rel ,p ,@a1))) . (not (atom (rel ,q ,@a2))))
      (term-match env (list (cons `(fn ,p ,@a1) `(fn ,q ,@a2))))]
     [_ (error 'match-literals "match_literals")]))
 
@@ -124,7 +124,7 @@
   (define (subsume env cls)
     (match cls
       ['() env]
-      [(cons l1 clt) (tryfind (λ (l2) (subsume (match-literals env (cons l1 l2)) clt)) cls2)]))
+      [`(,l1 . ,clt) (tryfind (λ (l2) (subsume (match-literals env (cons l1 l2)) clt)) cls2)]))
   (with-handlers ([exn:fail? (λ (e) #f)])
     (subsume undefined cls1)
     #t))
@@ -133,7 +133,7 @@
 (define (replace cl lis)
   (match lis
     ['() (list cl)]
-    [(cons c cls)
+    [`(,c . ,cls)
      (if (subsumes-clause cl c)
          (cons cl cls)
          (cons c (replace cl cls)))]))
@@ -146,7 +146,7 @@
 (define (resloop002 used unused)
   (match unused
     ['() (error 'resolution "No proof found")]
-    [(cons cl ros)
+    [`(,cl . ,ros)
      (when (resolution-verbose)
        (printf "~a used; ~a unused.\n" (length used) (length unused)))
      (define used* (insert cl used))
@@ -171,7 +171,7 @@
 (define (presloop used unused)
   (match unused
     ['() (error 'resolution "No proof found")]
-    [(cons cl ros)
+    [`(,cl . ,ros)
      (when (resolution-verbose)
        (printf "~a used; ~a unused.\n" (length used) (length unused)))
      (define used* (insert cl used))

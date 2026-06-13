@@ -40,11 +40,11 @@
   (imp-swap (imp-trans (axiom-impall x p) (imp-swap (axiom-allimp x p q)))))
 
 (define (genimp x th)
-  (match-define (cons p q) (dest-imp (concl th)))
+  (match-define `(,p . ,q) (dest-imp (concl th)))
   (modusponens (axiom-allimp x p q) (gen x th)))
 
 (define (gen-right x th)
-  (match-define (cons p q) (dest-imp (concl th)))
+  (match-define `(,p . ,q) (dest-imp (concl th)))
   (modusponens (gen-right-th x p q) (gen x th)))
 
 (define (exists-left-th x p q)
@@ -60,7 +60,7 @@
   (imp-swap (imp-trans th7 (imp-swap th4))))
 
 (define (exists-left x th)
-  (match-define (cons p q) (dest-imp (concl th)))
+  (match-define `(,p . ,q) (dest-imp (concl th)))
   (modusponens (exists-left-th x p q) (gen x th)))
 
 (define (subspec th)

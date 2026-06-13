@@ -59,7 +59,7 @@
     ['()
      (define newtups (groundtuples cntms funcs n (length fvs)))
      (herbloop mfn tfn fl0 cntms funcs fvs (add1 n) fl tried newtups)]
-    [(cons tup tups)
+    [`(,tup . ,tups)
      (define fl* (mfn fl0 (λ (f) (subst (fpf fvs tup) f)) fl))
      (if (not (tfn fl*))
          (cons tup tried)
@@ -97,7 +97,7 @@
 (define (dp-refine cjs0 fvs dunno need)
   (match dunno
     ['() need]
-    [(cons cl dknow)
+    [`(,cl . ,dknow)
      (define (mfn tup acc)
        (dp-mfn cjs0 (λ (f) (subst (fpf fvs tup) f)) acc))
      (define need*

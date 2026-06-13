@@ -49,13 +49,13 @@
 (define (conj-intro-tac g)
   (match-define (goals (cons (cons asl `(and ,p ,q)) gls) jfn) g)
   (define (jfn* ths)
-    (match-define (list* thp thq rest) ths)
+    (match-define `(,thp ,thq . ,rest) ths)
     (jfn (cons (imp-trans-chain (list thp thq) (and-pair p q)) rest)))
   (goals (cons (cons asl p) (cons (cons asl q) gls)) jfn*))
 
 (define (jmodify jfn tfn)
   (λ (ths)
-    (match-define (cons th oths) ths)
+    (match-define `(,th . ,oths) ths)
     (jfn (cons (tfn th) oths))))
 
 (define (gen-right-alpha y x th)
@@ -111,8 +111,8 @@
 (define (assumps asl)
   (match asl
     ['() '()]
-    [(list (cons l p)) (list (cons l (imp-refl p)))]
-    [(cons (cons l p) lps)
+    [`((,l . ,p)) (list (cons l (imp-refl p)))]
+    [`((,l . ,p) . ,lps)
      (define ths (assumps lps))
      (define q (antecedent (concl (cdr (car ths)))))
      (define rth (and-right p q))
@@ -169,8 +169,8 @@
         (goals (cons (cons (cons (cons l p) asl) w) gls) (jmodify jfn jfn*)))))
 
 (define (ante-disj th1 th2)
-  (match-define (cons p r) (dest-imp (concl th1)))
-  (match-define (cons q s) (dest-imp (concl th2)))
+  (match-define `(,p . ,r) (dest-imp (concl th1)))
+  (match-define `(,q . ,s) (dest-imp (concl th2)))
   (define th3 (imp-trans-chain (map contrapos (list th1 th2)) (and-pair `(not ,p) `(not ,q))))
   (define th4 (contrapos (imp-trans (iff-imp2 (axiom-not r)) th3)))
   (define th5 (imp-trans (iff-imp1 (axiom-or p q)) th4))
@@ -181,7 +181,7 @@
   (define th (justify byfn hyps fm g))
   (match-define `(or ,p ,q) fm)
   (define (jfn* ths)
-    (match-define (list* pth qth rest) ths)
+    (match-define `(,pth ,qth . ,rest) ths)
     (jfn (cons (imp-unduplicate (imp-trans th (ante-disj (shunt pth) (shunt qth)))) rest)))
   (goals (cons (cons (cons (cons l p) asl) w) (cons (cons (cons (cons l q) asl) w) gls)) jfn*))
 
@@ -223,7 +223,7 @@
   (if (equal? p w)
       (goals (cons (cons asl #t) gls) (jmodify jfn (λ (_) th)))
       (let ()
-        (match-define (cons p* q) (dest-and w))
+        (match-define `(,p* . ,q) (dest-and w))
         (if (not (equal? p* p))
             (error 'conclude "bad conclusion")
             (goals (cons (cons asl q) gls)

@@ -123,7 +123,7 @@
 ;; all ordered pairs (x . y) with x before y in l
 (define (distinctpairs l)
   (match l
-    [(cons x t) (append (map (λ (y) (cons x y)) t) (distinctpairs t))]
+    [`(,x . ,t) (append (map (λ (y) (cons x y)) t) (distinctpairs t))]
     ['() '()]))
 
 ;; all m-element subsets of l
@@ -201,7 +201,7 @@
 (define (earlier l x y)
   (match l
     ['() #f]
-    [(cons h t) (and (not (equal? h y)) (or (equal? h x) (earlier t x y)))]))
+    [`(,h . ,t) (and (not (equal? h y)) (or (equal? h x) (earlier t x y)))]))
 
 ;; ===== union-find ("partition") =====
 ;; A partition is a hash mapping each element to either
@@ -211,8 +211,8 @@
 
 (define (terminus ptn a)
   (match (apply ptn a)
-    [(cons 'nonterminal b) (terminus ptn b)]
-    [(list 'terminal p q) (cons p q)]))
+    [`(nonterminal . ,b) (terminus ptn b)]
+    [`(terminal ,p ,q) (cons p q)]))
 
 (define (tryterminus ptn a)
   (with-handlers ([exn:fail? (λ (e) (cons a 1))])

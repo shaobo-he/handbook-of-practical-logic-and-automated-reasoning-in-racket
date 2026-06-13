@@ -17,7 +17,7 @@
 ;; lexicographic extension of an order
 (define (lexord ord l1 l2)
   (match* (l1 l2)
-    [((cons h1 t1) (cons h2 t2))
+    [(`(,h1 . ,t1) `(,h2 . ,t2))
      (if (ord h1 h2)
          (= (length t1) (length t2))
          (and (equal? h1 h2) (lexord ord t1 t2)))]

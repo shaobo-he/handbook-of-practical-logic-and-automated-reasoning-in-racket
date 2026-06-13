@@ -133,7 +133,7 @@
 
 (define (backtrack trail)
   (match trail
-    [(cons (cons _ 'deduced) tt) (backtrack tt)]
+    [`((,_ . deduced) . ,tt) (backtrack tt)]
     [_ trail]))
 
 (define (dpli cls trail)
@@ -141,7 +141,7 @@
   (cond
     [(member '() cls*)
      (match (backtrack trail)
-       [(cons (cons p 'guessed) tt) (dpli cls (cons (cons (negate p) 'deduced) tt))]
+       [`((,p . guessed) . ,tt) (dpli cls (cons (cons (negate p) 'deduced) tt))]
        [_ #f])]
     [else
      (define ps (unassigned cls trail*))
@@ -157,7 +157,7 @@
 ;; ===== DPLL with non-chronological backjumping and clause learning =====
 (define (backjump cls p trail)
   (match (backtrack trail)
-    [(cons (cons q 'guessed) tt)
+    [`((,q . guessed) . ,tt)
      (define-values (cls* trail*) (unit-propagate cls (cons (cons p 'guessed) tt)))
      (if (member '() cls*)
          (backjump cls p tt)
@@ -169,7 +169,7 @@
   (cond
     [(member '() cls*)
      (match (backtrack trail)
-       [(cons (cons p 'guessed) tt)
+       [`((,p . guessed) . ,tt)
         (define trail** (backjump cls p tt))
         (define declits (filter (λ (e) (eq? (cdr e) 'guessed)) trail**))
         (define conflict (insert (negate p) (image (λ (e) (negate (car e))) declits)))

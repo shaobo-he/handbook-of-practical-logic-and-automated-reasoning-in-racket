@@ -181,13 +181,13 @@
 ;; tape = (tape head fn) ; config = (config state tape) ; symbols 'blank/'one ;
 ;; directions 'left/'right/'stay ; program = hash (state . symbol) -> (char dir state')
 (define (look tp)
-  (match-define (list 'tape r f) tp)
+  (match-define `(tape ,r ,f) tp)
   (tryapplyd f r 'blank))
 (define (twrite s tp)
-  (match-define (list 'tape r f) tp)
+  (match-define `(tape ,r ,f) tp)
   (list 'tape r (update r s f)))
 (define (move dir tp)
-  (match-define (list 'tape r f) tp)
+  (match-define `(tape ,r ,f) tp)
   (list 'tape
         (+ r
            (cond
@@ -197,10 +197,10 @@
         f))
 
 (define (run prog cfg)
-  (match-define (list 'config state tp) cfg)
+  (match-define `(config ,state ,tp) cfg)
   (define stt (cons state (look tp)))
   (if (defined prog stt)
-      (match-let ([(list char dir state*) (apply prog stt)])
+      (match-let ([`(,char ,dir ,state*) (apply prog stt)])
         (run prog (list 'config state* (move dir (twrite char tp)))))
       cfg))
 
@@ -216,7 +216,7 @@
       (+ 1 (output-tape tp*))))
 
 (define (exec prog args)
-  (match-define (list 'config _ t) (run prog (list 'config 1 (input-tape args))))
+  (match-define `(config ,_ ,t) (run prog (list 'config 1 (input-tape args))))
   (output-tape t))
 
 ;; ===== Robinson arithmetic axioms (as s-expressions) =====
@@ -265,11 +265,11 @@
 (define (right-imp-trans th1 th2)
   (imp-unduplicate (imp-front 2 (imp-trans2 th1 (imp-swap th2)))))
 (define (right-sym th)
-  (match-define (cons s t) (dest-eq (consequent (concl th))))
+  (match-define `(,s . ,t) (dest-eq (consequent (concl th))))
   (imp-trans th (eq-sym s t)))
 (define (right-trans th1 th2)
-  (match-define (cons s t) (dest-eq (consequent (concl th1))))
-  (match-define (cons t2 u) (dest-eq (consequent (concl th2))))
+  (match-define `(,s . ,t) (dest-eq (consequent (concl th1))))
+  (match-define `(,t2 . ,u) (dest-eq (consequent (concl th2))))
   (imp-trans-chain (list th1 th2) (eq-trans s t u)))
 
 ;; ===== Robinson ground-term evaluation (produces kernel proofs) =====

@@ -55,7 +55,7 @@
 (define (paraloop used unused)
   (match unused
     ['() (error 'paramodulation "No proof found")]
-    [(cons cls ros)
+    [`(,cls . ,ros)
      (when (paramodulation-verbose)
        (printf "~a used; ~a unused.\n" (length used) (length unused)))
      (define used* (insert cls used))

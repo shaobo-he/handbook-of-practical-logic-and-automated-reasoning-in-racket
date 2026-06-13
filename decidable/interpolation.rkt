@@ -68,7 +68,7 @@
   (define (simpinter tms n c)
     (match tms
       ['() c]
-      [(cons (and tm `(fn ,f ,@args)) otms)
+      [`(,(and tm `(fn ,f ,@args)) . ,otms)
        (define v (string->symbol (string-append "v_" (number->string n))))
        (define c* (replace (update tm `(var ,v) undefined) c))
        (define c**

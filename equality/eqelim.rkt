@@ -34,11 +34,11 @@
 (define (modify-T cl)
   (match cl
     ['() '()]
-    [(cons (and eq `(atom (rel = ,s ,t))) ps)
+    [`(,(and eq `(atom (rel = ,s ,t))) . ,ps)
      (define ps* (modify-T ps))
      (define w `(var ,(variant 'w (foldr (λ (p acc) (union (fv p) acc)) (fv eq) ps*))))
      (cons `(not ,(mk-eq t w)) (cons (mk-eq s w) ps*))]
-    [(cons p ps) (cons p (modify-T ps))]))
+    [`(,p . ,ps) (cons p (modify-T ps))]))
 
 ;; ===== E modification (abstract non-variable subterms) =====
 (define (is-nonvar tm)

@@ -17,10 +17,10 @@
 ;; ===== unify literals (treat the leading relation like a function) =====
 (define (unify-literals env tmp)
   (match tmp
-    [(cons `(atom (rel ,p1 ,@a1)) `(atom (rel ,p2 ,@a2)))
+    [`((atom (rel ,p1 ,@a1)) . (atom (rel ,p2 ,@a2)))
      (unify env (list (cons `(fn ,p1 ,@a1) `(fn ,p2 ,@a2))))]
-    [(cons `(not ,p) `(not ,q)) (unify-literals env (cons p q))]
-    [(cons #f #f) env]
+    [`((not ,p) . (not ,q)) (unify-literals env (cons p q))]
+    [`(#f . #f) env]
     [_ (error 'unify-literals "Can't unify literals")]))
 
 (define (unify-complements env pq)
@@ -30,7 +30,7 @@
 (define (unify-refute djs acc)
   (match djs
     ['() acc]
-    [(cons head tail)
+    [`(,head . ,tail)
      (define-values (pos neg) (partition positive head))
      (tryfind (λ (pq) (unify-refute tail (unify-complements acc pq))) (allpairs cons pos neg))]))
 
@@ -59,14 +59,14 @@
       (error 'tableau "no proof at this level")
       (match fms
         ['() (error 'tableau "tableau: no proof")]
-        [(cons `(and ,p ,q) unexp) (tableau (cons p (cons q unexp)) lits n cont env k)]
-        [(cons `(or ,p ,q) unexp)
+        [`((and ,p ,q) . ,unexp) (tableau (cons p (cons q unexp)) lits n cont env k)]
+        [`((or ,p ,q) . ,unexp)
          (tableau (cons p unexp) lits n (λ (env k) (tableau (cons q unexp) lits n cont env k)) env k)]
-        [(cons `(forall ,x ,p) unexp)
+        [`((forall ,x ,p) . ,unexp)
          (define y `(var ,(string->symbol (string-append "_" (number->string k)))))
          (define p* (subst (update x y undefined) p))
          (tableau (cons p* (append unexp (list `(forall ,x ,p)))) lits (sub1 n) cont env (add1 k))]
-        [(cons fm unexp)
+        [`(,fm . ,unexp)
          (with-handlers ([exn:fail? (λ (e) (tableau unexp (cons fm lits) n cont env k))])
            (tryfind (λ (l) (cont (unify-complements env (cons fm l)) k)) lits))])))
 

@@ -68,7 +68,7 @@
 
 (define (condense ps)
   (match ps
-    [(list* iv pt other)
+    [`(,iv ,pt . ,other)
      (define rest (condense other))
      (if (member 'zero pt)
          (cons iv (cons pt rest))
@@ -77,7 +77,7 @@
 
 (define (inferisign ps)
   (match ps
-    [(list* (and x (cons l ls)) (cons _ ints) (and pts (cons (cons r rs) xs)))
+    [`(,(and x (cons l ls)) (,_ . ,ints) . ,(and pts (cons (cons r rs) xs)))
      (match* (l r)
        [('zero 'zero) (error 'inferisign "inconsistent")]
        [('nonzero _) (error 'inferisign "indeterminate")]
@@ -131,7 +131,7 @@
 (define (casesplit vars dun pols cont sgns)
   (match pols
     ['() (matrix vars dun cont sgns)]
-    [(cons p ops)
+    [`(,p . ,ops)
      (define zbranch
        (if (is-constant vars p)
            (λ (s) (delconst vars dun p ops cont s))

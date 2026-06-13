@@ -106,7 +106,7 @@
 
 ;; ===== choose origin and zero a coordinate =====
 (define (originate fm)
-  (match-define (list* a b ovs) (fv fm))
+  (match-define `(,a ,b . ,ovs) (fv fm))
   (subst (fpf (list (sym+ a "_x") (sym+ a "_y") (sym+ b "_y")) (list zero zero zero))
          (coordinate fm)))
 
@@ -116,7 +116,7 @@
       degens
       (match triang
         ['() (cons (mk-eq p zero) degens)]
-        [(cons (and q `(fn + ,c (fn * (var ,x) ,_))) qs)
+        [`(,(and q `(fn + ,c (fn * (var ,x) ,_))) . ,qs)
          (if (not (equal? x (car vars)))
              (if (member (car vars) (fvt p))
                  (foldr (λ (coef acc) (pprove vars triang coef acc)) degens (coefficients vars p))

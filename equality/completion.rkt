@@ -32,7 +32,7 @@
 (define (listcases fn rfn lis acc)
   (match lis
     ['() acc]
-    [(cons h t)
+    [`(,h . ,t)
      (append (fn h (λ (i h*) (rfn i (cons h* t))))
              (listcases fn (λ (i t*) (rfn i (cons h t*))) t acc))]))
 
@@ -87,7 +87,7 @@
   (define def (cadr trip))
   (define crits (caddr trip))
   (match crits
-    [(cons eq ocrits)
+    [`(,eq . ,ocrits)
      (define trip*
        (with-handlers ([exn:fail? (λ (e) (list eqs (cons eq def) ocrits))])
          (define-values (s* t*) (normalize-and-orient ord eqs eq))
@@ -112,7 +112,7 @@
 (define (interreduce dun eqs)
   (match eqs
     ['() (reverse dun)]
-    [(cons `(atom (rel = ,l ,r)) oeqs)
+    [`((atom (rel = ,l ,r)) . ,oeqs)
      (define dun*
        (if (not (equal? (rewrite (append dun oeqs) l) l))
            dun

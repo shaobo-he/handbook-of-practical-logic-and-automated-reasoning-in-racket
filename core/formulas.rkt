@@ -103,11 +103,11 @@
 ;; collect a run of like quantifiers: (forall x (forall y p)) -> ((x y), p)
 (define (strip-quant fm)
   (match fm
-    [(list (and Q (or 'forall 'exists)) x (and yp (list Q2 _ _)))
+    [`(,(and Q (or 'forall 'exists)) ,x ,(and yp (list Q2 _ _)))
      #:when (eq? Q Q2)
      (let-values ([(xs bod) (strip-quant yp)])
        (values (cons x xs) bod))]
-    [(list (or 'forall 'exists) x p) (values (list x) p)]
+    [`(,(or 'forall 'exists) ,x ,p) (values (list x) p)]
     [_ (values '() fm)]))
 
 ;; pfn : (prec atom) -> string  (atom printer, receives surrounding precedence)

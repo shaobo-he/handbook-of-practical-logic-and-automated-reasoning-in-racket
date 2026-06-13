@@ -66,7 +66,7 @@
 (define (irredundant rel eqs)
   (match eqs
     ['() '()]
-    [(cons pq oth)
+    [`(,pq . ,oth)
      (if (equal? (canonize rel (car pq)) (canonize rel (cdr pq)))
          (irredundant rel oth)
          (insert pq (irredundant (equate2 pq rel) oth)))]))
@@ -154,7 +154,7 @@
 (define (zero-saturate erf assigs)
   (match assigs
     ['() erf]
-    [(cons pq ts)
+    [`(,pq . ,ts)
      (define ne (equatecons pq erf))
      (zero-saturate (cdr ne) (union ts (car ne)))]))
 
@@ -171,13 +171,13 @@
 
 (define (equateset s0 eqfn)
   (match s0
-    [(cons a (and s1 (cons b s2))) (equateset s1 (cdr (equatecons (cons a b) eqfn)))]
+    [`(,a . ,(and s1 (cons b s2))) (equateset s1 (cdr (equatecons (cons a b) eqfn)))]
     [_ eqfn]))
 
 (define (inter els erf1 erf2 rev1 rev2 erf)
   (match els
     ['() erf]
-    [(cons x xs)
+    [`(,x . ,xs)
      (define b1 (canonize (car erf1) x))
      (define b2 (canonize (car erf2) x))
      (define s1 (apply rev1 b1))
@@ -215,7 +215,7 @@
   (define eqv (car erf))
   (match vars
     ['() erf]
-    [(cons p ovars)
+    [`(,p . ,ovars)
      (if (not (equal? (canonize eqv p) p))
          (splits n erf allvars ovars)
          (let ()

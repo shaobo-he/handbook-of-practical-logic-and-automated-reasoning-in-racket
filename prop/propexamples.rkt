@@ -97,7 +97,7 @@
                           k))))
 
 (define (mk-adder-test n k)
-  (match-define (list x y c s c0 s0 c1 s1 c2 s2)
+  (match-define `(,x ,y ,c ,s ,c0 ,s0 ,c1 ,s1 ,c2 ,s2)
     (map mk-index '("x" "y" "c" "s" "c0" "s0" "c1" "s1" "c2" "s2")))
   `(imp (and (and ,(carryselect x y c0 c1 s0 s1 c s n k) (not ,(c 0))) ,(ripplecarry0 x y c2 s2 n))
         (and (iff ,(c n) ,(c2 n)) ,(conjoin (λ (i) `(iff ,(s i) ,(s2 i))) (range 0 n)))))
@@ -160,9 +160,9 @@
            (range 0 n)))
 
 (define (prime p)
-  (match-define (list x y out) (map mk-index '("x" "y" "out")))
+  (match-define `(,x ,y ,out) (map mk-index '("x" "y" "out")))
   (define (m i)
     (λ (j) `(and ,(x i) ,(y j))))
-  (match-define (list u v) (map mk-index2 '("u" "v")))
+  (match-define `(,u ,v) (map mk-index2 '("u" "v")))
   (define n (bitlength p))
   `(not (and ,(multiplier m u v out (- n 1)) ,(congruent-to out p (max n (- (* 2 n) 2))))))

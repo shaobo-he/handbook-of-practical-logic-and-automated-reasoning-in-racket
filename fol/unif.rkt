@@ -22,12 +22,12 @@
 (define (unify env eqs)
   (match eqs
     ['() env]
-    [(cons (cons `(fn ,f ,@fargs) `(fn ,g ,@gargs)) oth)
+    [`(((fn ,f ,@fargs) . (fn ,g ,@gargs)) . ,oth)
      (if (and (equal? f g) (= (length fargs) (length gargs)))
          (unify env (append (map cons fargs gargs) oth))
          (error 'unify "impossible unification"))]
-    [(cons (cons `(var ,x) t) oth) (unify-var env x t oth)]
-    [(cons (cons t `(var ,x)) oth) (unify-var env x t oth)]))
+    [`(((var ,x) . ,t) . ,oth) (unify-var env x t oth)]
+    [`((,t . (var ,x)) . ,oth) (unify-var env x t oth)]))
 
 (define (unify-var env x t oth)
   (if (defined env x)
