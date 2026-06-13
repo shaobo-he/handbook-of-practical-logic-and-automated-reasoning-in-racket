@@ -88,14 +88,16 @@ Tests (run `racket tests/<file>-test.rkt`): `prop`, `fol`, `dp`, `unif`, `herbra
 `extras` (intro/propexamples/stal/bdd), `decidable` (decidable/qelim/cooper/
 complex/real/grobner), `chapter5b` (geom/interpolation/combining),
 `lcf` (lcf/lcfprop/folderived/lcffol/tactics/limitations),
-`pelletier` (a selection of Pelletier's problems run through the provers),
-`property` (property-based tests — see below).
+`pelletier` (a selection of Pelletier's problems run through the provers).
 
-Run the whole suite with `raco test tests/` (508 checks).
+Run the whole suite with `raco test tests/` (508 checks) — this recurses into
+`tests/property/` and includes the property suite.
 
-`tests/property-test.rkt` uses [rackcheck](https://docs.racket-lang.org/rackcheck/)
-for property-based testing — ~110 properties (most run 1500 random cases) spanning
-every chapter, checking each function against a trusted oracle or its defining law:
+The `tests/property/` directory holds the
+[rackcheck](https://docs.racket-lang.org/rackcheck/) property-based tests: one
+`<chapter>-props.rkt` file per chapter group sharing a `common.rkt` of generators,
+oracles, and configs. ~110 properties (most run 1500 random cases) span every
+chapter, checking each function against a trusted oracle or its defining law:
 
 - **lib/formulas/intro** — set/union-find axioms (commutativity, associativity,
   absorption, transitivity), finite-partial-function laws, constructor/destructor
