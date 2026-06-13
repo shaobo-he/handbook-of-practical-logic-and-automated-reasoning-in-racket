@@ -10,8 +10,8 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: Bogdanp/setup-racket@v1.11
+      - uses: actions/checkout@v5
+      - uses: Bogdanp/setup-racket@v1.15
         with:
           version: stable
           distribution: full
@@ -22,8 +22,8 @@ jobs:
     name: Format check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: Bogdanp/setup-racket@v1.11
+      - uses: actions/checkout@v5
+      - uses: Bogdanp/setup-racket@v1.15
         with:
           version: stable
           distribution: full
