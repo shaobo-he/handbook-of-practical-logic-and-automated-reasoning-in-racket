@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Bogdanp/setup-racket@v1.11
+        with:
+          version: stable
+          distribution: full
+      - name: Run test suite
+        run: raco test tests/
+
+  format:
+    name: Format check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Bogdanp/setup-racket@v1.11
+        with:
+          version: stable
+          distribution: full
+          packages: fmt
+      - name: Check formatting is clean
+        run: |
+          raco fmt -i $(find core prop fol equality decidable lcf tests -name '*.rkt')
+          git diff --exit-code

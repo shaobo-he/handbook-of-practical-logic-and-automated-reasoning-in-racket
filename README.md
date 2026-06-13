@@ -1,5 +1,7 @@
 # Racket Implementation of John Harrison's *Handbook of Practical Logic and Automated Reasoning*
 
+[![CI](https://github.com/shaobo-he/handbook-of-practical-logic-and-automated-reasoning-in-racket/actions/workflows/ci.yml/badge.svg)](https://github.com/shaobo-he/handbook-of-practical-logic-and-automated-reasoning-in-racket/actions/workflows/ci.yml)
+
 A port of the book's code (<https://www.cl.cam.ac.uk/~jrh13/atp/>), following the
 F# version's module layout. Everything is plain (untyped) `racket/base`; formulas
 and terms are represented directly as s-expressions, so Racket's reader doubles as
