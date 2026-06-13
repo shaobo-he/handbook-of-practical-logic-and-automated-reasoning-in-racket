@@ -19,7 +19,8 @@
 
 (define empty-prop (string->symbol ""))
 
-(define (print-bdd b) (printf "<BDD with ~a nodes>" (bdd-n b)))
+(define (print-bdd b)
+  (printf "<BDD with ~a nodes>" (bdd-n b)))
 
 (define (expand-node b n)
   (if (>= n 0)
@@ -28,13 +29,13 @@
         [(list p l r) (list p (- l) (- r))])))
 
 (define (lookup-unique b node)
-  (with-handlers ([exn:fail?
-                   (λ (e)
-                     (define m (bdd-n b))
-                     (values (bdd (update node m (bdd-unique b))
-                                  (update m node (bdd-expand b))
-                                  (+ m 1) (bdd-ord b))
-                             m))])
+  (with-handlers ([exn:fail? (λ (e)
+                               (define m (bdd-n b))
+                               (values (bdd (update node m (bdd-unique b))
+                                            (update m node (bdd-expand b))
+                                            (+ m 1)
+                                            (bdd-ord b))
+                                       m))])
     (values b (apply (bdd-unique b) node))))
 
 (define (mk-node b slr)
@@ -42,13 +43,15 @@
   (cond
     [(= l r) (values b l)]
     [(>= l 0) (lookup-unique b (list s l r))]
-    [else (let-values ([(b* m) (lookup-unique b (list s (- l) (- r)))]) (values b* (- m)))]))
+    [else
+     (let-values ([(b* m) (lookup-unique b (list s (- l) (- r)))])
+       (values b* (- m)))]))
 
-(define (mk-bdd ord) (bdd undefined undefined 2 ord))
+(define (mk-bdd ord)
+  (bdd undefined undefined 2 ord))
 
 (define (bdd-order b p1 p2)
-  (or (and (equal? p2 empty-prop) (not (equal? p1 empty-prop)))
-      ((bdd-ord b) p1 p2)))
+  (or (and (equal? p2 empty-prop) (not (equal? p1 empty-prop))) ((bdd-ord b) p1 p2)))
 
 ;; thread state s through f1 then f2, then combine with g
 ;; f1x1 / f2x2 are (fn . arg); each fn takes (state arg) and returns (values state result)
@@ -59,8 +62,10 @@
 
 ;; bddcomp is (bdd . computed-table); m1m2 is (m1 . m2)
 (define (bdd-and bddcomp m1m2)
-  (define m1 (car m1m2)) (define m2 (cdr m1m2))
-  (define b (car bddcomp)) (define comp (cdr bddcomp))
+  (define m1 (car m1m2))
+  (define m2 (cdr m1m2))
+  (define b (car bddcomp))
+  (define comp (cdr bddcomp))
   (cond
     [(or (= m1 -1) (= m2 -1)) (values bddcomp -1)]
     [(= m1 1) (values bddcomp m2)]
@@ -79,7 +84,8 @@
                [else (values p2 (cons m1 l2) (cons m1 r2))]))
            (define-values (bc* lr)
              (thread bddcomp (λ (s z) (values s z)) (cons bdd-and lpair) (cons bdd-and rpair)))
-           (define b* (car bc*)) (define comp* (cdr bc*))
+           (define b* (car bc*))
+           (define comp* (cdr bc*))
            (let-values ([(b** m) (mk-node b* (list p (car lr) (cdr lr)))])
              (values (cons b** (update (cons m1 m2) m comp*)) m))))]))
 
@@ -87,10 +93,12 @@
   (let-values ([(bdc1 m) (bdd-and bdc (cons (- (car m1m2)) (- (cdr m1m2))))])
     (values bdc1 (- m))))
 
-(define (bdd-imp bdc m1m2) (bdd-or bdc (cons (- (car m1m2)) (cdr m1m2))))
+(define (bdd-imp bdc m1m2)
+  (bdd-or bdc (cons (- (car m1m2)) (cdr m1m2))))
 
 (define (bdd-iff bdc m1m2)
-  (thread bdc bdd-or
+  (thread bdc
+          bdd-or
           (cons bdd-and (cons (car m1m2) (cdr m1m2)))
           (cons bdd-and (cons (- (car m1m2)) (- (cdr m1m2))))))
 
@@ -102,7 +110,9 @@
     [`(atom ,s)
      (let-values ([(b* m) (mk-node (car bddcomp) (list s 1 -1))])
        (values (cons b* (cdr bddcomp)) m))]
-    [`(not ,p) (let-values ([(bc* m) (mkbdd bddcomp p)]) (values bc* (- m)))]
+    [`(not ,p)
+     (let-values ([(bc* m) (mkbdd bddcomp p)])
+       (values bc* (- m)))]
     [`(and ,p ,q) (thread bddcomp bdd-and (cons mkbdd p) (cons mkbdd q))]
     [`(or ,p ,q) (thread bddcomp bdd-or (cons mkbdd p) (cons mkbdd q))]
     [`(imp ,p ,q) (thread bddcomp bdd-imp (cons mkbdd p) (cons mkbdd q))]
@@ -124,7 +134,8 @@
     [`(iff ,r (atom ,x)) (cons x r)]
     [_ (error 'dest-iffdef "not a defining equivalence")]))
 
-(define (restore-iffdef xe fm) `(imp (iff (atom ,(car xe)) ,(cdr xe)) ,fm))
+(define (restore-iffdef xe fm)
+  `(imp (iff (atom ,(car xe)) ,(cdr xe)) ,fm))
 
 (define (suitable-iffdef defs xq)
   (define fvs (atoms (cdr xq)))
@@ -148,11 +159,20 @@
          (values bddcomp cached)
          (let-values ([(b* m) (mk-node (car bddcomp) (list s 1 -1))])
            (values (cons b* (cdr bddcomp)) m)))]
-    [`(not ,p) (let-values ([(bc* m) (mkbdde sfn bddcomp p)]) (values bc* (- m)))]
-    [`(and ,p ,q) (thread bddcomp bdd-and (cons (λ (s x) (mkbdde sfn s x)) p) (cons (λ (s x) (mkbdde sfn s x)) q))]
-    [`(or ,p ,q) (thread bddcomp bdd-or (cons (λ (s x) (mkbdde sfn s x)) p) (cons (λ (s x) (mkbdde sfn s x)) q))]
-    [`(imp ,p ,q) (thread bddcomp bdd-imp (cons (λ (s x) (mkbdde sfn s x)) p) (cons (λ (s x) (mkbdde sfn s x)) q))]
-    [`(iff ,p ,q) (thread bddcomp bdd-iff (cons (λ (s x) (mkbdde sfn s x)) p) (cons (λ (s x) (mkbdde sfn s x)) q))]))
+    [`(not ,p)
+     (let-values ([(bc* m) (mkbdde sfn bddcomp p)])
+       (values bc* (- m)))]
+    [`(and ,p ,q)
+     (thread bddcomp bdd-and (cons (λ (s x) (mkbdde sfn s x)) p) (cons (λ (s x) (mkbdde sfn s x)) q))]
+    [`(or ,p ,q)
+     (thread bddcomp bdd-or (cons (λ (s x) (mkbdde sfn s x)) p) (cons (λ (s x) (mkbdde sfn s x)) q))]
+    [`(imp ,p ,q)
+     (thread bddcomp bdd-imp (cons (λ (s x) (mkbdde sfn s x)) p) (cons (λ (s x) (mkbdde sfn s x)) q))]
+    [`(iff ,p ,q)
+     (thread bddcomp
+             bdd-iff
+             (cons (λ (s x) (mkbdde sfn s x)) p)
+             (cons (λ (s x) (mkbdde sfn s x)) q))]))
 
 (define (mkbdds sfn bddcomp defs fm)
   (match defs

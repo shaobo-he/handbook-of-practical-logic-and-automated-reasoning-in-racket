@@ -15,12 +15,8 @@
 ;; #t if binding x := t would be trivial (t is x); raises on a cyclic binding
 (define (istriv env x t)
   (match t
-    [`(var ,y)
-     (or (equal? y x)
-         (and (defined env y) (istriv env x (apply env y))))]
-    [`(fn ,f ,@args)
-     (and (ormap (λ (a) (istriv env x a)) args)
-          (error 'unify "cyclic"))]))
+    [`(var ,y) (or (equal? y x) (and (defined env y) (istriv env x (apply env y))))]
+    [`(fn ,f ,@args) (and (ormap (λ (a) (istriv env x a)) args) (error 'unify "cyclic"))]))
 
 ;; eqs is a list of (s . t) pairs to be unified under env
 (define (unify env eqs)
@@ -36,14 +32,20 @@
 (define (unify-var env x t oth)
   (if (defined env x)
       (unify env (cons (cons (apply env x) t) oth))
-      (unify (if (istriv env x t) env (update x t env)) oth)))
+      (unify (if (istriv env x t)
+                 env
+                 (update x t env))
+             oth)))
 
 ;; normalize a (triangular) env to an idempotent substitution
 (define (solve env)
   (define env* (mapf (λ (t) (tsubst env t)) env))
-  (if (equal? env* env) env (solve env*)))
+  (if (equal? env* env)
+      env
+      (solve env*)))
 
-(define (fullunify eqs) (solve (unify undefined eqs)))
+(define (fullunify eqs)
+  (solve (unify undefined eqs)))
 
 ;; solve and apply, returning each equation with both sides instantiated
 (define (unify-and-apply eqs)

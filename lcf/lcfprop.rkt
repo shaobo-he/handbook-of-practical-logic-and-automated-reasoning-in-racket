@@ -5,16 +5,14 @@
 
 (require racket/match)
 (require (only-in "../core/lib.rkt" funpow chop-list index))
-(require (only-in "../core/formulas.rkt"
-                  dest-imp dest-iff dest-and antecedent consequent mk-imp))
+(require (only-in "../core/formulas.rkt" dest-imp dest-iff dest-and antecedent consequent mk-imp))
 (require "lcf.rkt")
 
 (provide (all-defined-out))
 
 ;; |- p ==> p
 (define (imp-refl p)
-  (modusponens (modusponens (axiom-distribimp p `(imp ,p ,p) p)
-                            (axiom-addimp p `(imp ,p ,p)))
+  (modusponens (modusponens (axiom-distribimp p `(imp ,p ,p) p) (axiom-addimp p `(imp ,p ,p)))
                (axiom-addimp p p)))
 
 (define (imp-unduplicate th)
@@ -22,10 +20,17 @@
   (define q (consequent pq))
   (modusponens (modusponens (axiom-distribimp p p q) th) (imp-refl p)))
 
-(define (negatef fm) (match fm [`(imp ,p #f) p] [p `(imp ,p #f)]))
-(define (negativef fm) (match fm [`(imp ,p #f) #t] [_ #f]))
+(define (negatef fm)
+  (match fm
+    [`(imp ,p #f) p]
+    [p `(imp ,p #f)]))
+(define (negativef fm)
+  (match fm
+    [`(imp ,p #f) #t]
+    [_ #f]))
 
-(define (add-assum p th) (modusponens (axiom-addimp (concl th) p) th))
+(define (add-assum p th)
+  (modusponens (axiom-addimp (concl th) p) th))
 
 (define (imp-add-assum p th)
   (match-define (cons q r) (dest-imp (concl th)))
@@ -59,7 +64,8 @@
      (imp-trans (imp-swap-th q p r) (imp-trans th (imp-swap-th s t u)))]
     [_ (error 'imp-swap2 "imp_swap2")]))
 
-(define (right-mp ith th) (imp-unduplicate (imp-trans th (imp-swap ith))))
+(define (right-mp ith th)
+  (imp-unduplicate (imp-trans th (imp-swap ith))))
 
 (define (iff-imp1 th)
   (match-define (cons p q) (dest-iff (concl th)))
@@ -78,7 +84,8 @@
     [`(imp ,_ (imp (imp ,p #f) #f)) (imp-trans th (axiom-doubleneg p))]
     [_ (error 'right-doubleneg "right_doubleneg")]))
 
-(define (ex-falso p) (right-doubleneg (axiom-addimp #f `(imp ,p #f))))
+(define (ex-falso p)
+  (right-doubleneg (axiom-addimp #f `(imp ,p #f))))
 
 (define (imp-trans2 th1 th2)
   (match-define `(imp ,p (imp ,q ,r)) (concl th1))
@@ -103,8 +110,7 @@
 
 (define (contrapos th)
   (match-define (cons p q) (dest-imp (concl th)))
-  (imp-trans (imp-trans (iff-imp1 (axiom-not q)) (imp-add-concl #f th))
-             (iff-imp2 (axiom-not p))))
+  (imp-trans (imp-trans (iff-imp1 (axiom-not q)) (imp-add-concl #f th)) (iff-imp2 (axiom-not p))))
 
 (define (and-left p q)
   (define th1 (imp-add-assum p (axiom-addimp #f q)))
@@ -188,7 +194,8 @@
         (match-define (cons q2 r2) (dest-imp (funpow 2 consequent (concl th1))))
         (imp-trans th1 (imp-swap-th p q2 r2)))))
 
-(define (imp-front n th) (modusponens (imp-front-th n (concl th)) th))
+(define (imp-front n th)
+  (modusponens (imp-front-th n (concl th)) th))
 
 ;; ===== propositional tableau prover =====
 (define (literal? p)
@@ -202,12 +209,15 @@
 (define (lcfptab fms lits)
   (match fms
     [(cons #f fl) (ex-falso (foldr mk-imp #f (append fl lits)))]
-    [(cons (and fm `(imp ,p ,q)) fl) #:when (equal? p q) (add-assum fm (lcfptab fl lits))]
-    [(cons `(imp (imp ,p ,q) #f) fl)
-     (imp-false-rule (lcfptab (cons p (cons `(imp ,q #f) fl)) lits))]
-    [(cons `(imp ,p ,q) fl) #:when (not (equal? q #f))
+    [(cons (and fm `(imp ,p ,q)) fl)
+     #:when (equal? p q)
+     (add-assum fm (lcfptab fl lits))]
+    [(cons `(imp (imp ,p ,q) #f) fl) (imp-false-rule (lcfptab (cons p (cons `(imp ,q #f) fl)) lits))]
+    [(cons `(imp ,p ,q) fl)
+     #:when (not (equal? q #f))
      (imp-true-rule (lcfptab (cons `(imp ,p #f) fl) lits) (lcfptab (cons q fl) lits))]
-    [(cons p fl) #:when (literal? p)
+    [(cons p fl)
+     #:when (literal? p)
      (if (member (negatef p) lits)
          (let ()
            (define-values (l1 l2) (chop-list (index (negatef p) lits) lits))

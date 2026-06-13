@@ -27,8 +27,7 @@
   (if (and (> (string-length s) m)
            (string=? (substring s 0 m) pfx)
            (let ([rest (substring s m)])
-             (and (positive? (string-length rest))
-                  (andmap char-numeric? (string->list rest)))))
+             (and (positive? (string-length rest)) (andmap char-numeric? (string->list rest)))))
       (string->number (substring s m))
       0))
 
@@ -45,7 +44,9 @@
   (define fm2 (maincnf q defs counter))
   (define fm* (op fm1 fm2))
   (cond
-    [(hash-ref defs fm* #f) => car]
+    [(hash-ref defs fm* #f)
+     =>
+     car]
     [else
      (define v (mkprop! counter))
      (hash-set! defs fm* (cons v `(iff ,v ,fm*)))
@@ -80,7 +81,8 @@
     [_ (orcnf fm defs counter)]))
 
 ;; set-of-clauses form (this is what the SAT procedures consume)
-(define (defcnfs fm) (mk-defcnf andcnf fm))
+(define (defcnfs fm)
+  (mk-defcnf andcnf fm))
 
 (define (defcnf fm)
   (list-conj (map list-disj (defcnfs fm))))

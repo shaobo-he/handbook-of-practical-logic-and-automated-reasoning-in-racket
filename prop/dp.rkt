@@ -11,7 +11,16 @@
 (require racket/set)
 (require (only-in racket/list partition filter-map))
 (require (only-in "../core/lib.rkt"
-                  image unions union subtract intersect allpairs non insert minimize maximize))
+                  image
+                  unions
+                  union
+                  subtract
+                  intersect
+                  allpairs
+                  non
+                  insert
+                  minimize
+                  maximize))
 (require (only-in "prop.rkt" negate negative positive trivial))
 (require (only-in "defcnf.rkt" defcnfs))
 
@@ -32,8 +41,7 @@
   (define pos-only (subtract pos neg))
   (define neg-only (subtract neg pos))
   (define pure (union pos-only (image negate neg-only)))
-  (and (not (null? pure))
-       (filter (λ (cl) (null? (intersect cl pure))) clauses)))
+  (and (not (null? pure)) (filter (λ (cl) (null? (intersect cl pure))) clauses)))
 
 (define (resolve-on p clauses)
   (define p* (negate p))
@@ -58,12 +66,18 @@
   (cond
     [(null? clauses) #t]
     [(member '() clauses) #f]
-    [(one-literal-rule clauses) => dp]
-    [(affirmative-negative-rule clauses) => dp]
+    [(one-literal-rule clauses)
+     =>
+     dp]
+    [(affirmative-negative-rule clauses)
+     =>
+     dp]
     [else (dp (resolution-rule clauses))]))
 
-(define (dpsat fm) (dp (defcnfs fm)))
-(define (dptaut fm) (not (dpsat `(not ,fm))))
+(define (dpsat fm)
+  (dp (defcnfs fm)))
+(define (dptaut fm)
+  (not (dpsat `(not ,fm))))
 
 ;; ===== DPLL procedure =====
 (define (posneg-count cls l)
@@ -74,39 +88,43 @@
   (cond
     [(null? clauses) #t]
     [(member '() clauses) #f]
-    [(one-literal-rule clauses) => dpll]
-    [(affirmative-negative-rule clauses) => dpll]
+    [(one-literal-rule clauses)
+     =>
+     dpll]
+    [(affirmative-negative-rule clauses)
+     =>
+     dpll]
     [else
      (define pvs (filter positive (unions clauses)))
      (define p (maximize (λ (l) (posneg-count clauses l)) pvs))
-     (or (dpll (insert (list p) clauses))
-         (dpll (insert (list (negate p)) clauses)))]))
+     (or (dpll (insert (list p) clauses)) (dpll (insert (list (negate p)) clauses)))]))
 
-(define (dpllsat fm) (dpll (defcnfs fm)))
-(define (dplltaut fm) (not (dpllsat `(not ,fm))))
+(define (dpllsat fm)
+  (dpll (defcnfs fm)))
+(define (dplltaut fm)
+  (not (dpllsat `(not ,fm))))
 
 ;; ===== iterative DPLL with an explicit trail =====
 ;; trail entries are (literal . status) with status 'guessed or 'deduced.
-(define (litabs p) (match p [`(not ,q) q] [_ p]))
+(define (litabs p)
+  (match p
+    [`(not ,q) q]
+    [_ p]))
 
 (define (unassigned cls trail)
-  (subtract (unions (image (λ (cl) (image litabs cl)) cls))
-            (image (λ (e) (litabs (car e))) trail)))
+  (subtract (unions (image (λ (cl) (image litabs cl)) cls)) (image (λ (e) (litabs (car e))) trail)))
 
 (define (unit-subpropagate cls assigned trail)
   (define cls* (map (λ (cl) (filter (λ (l) (not (set-member? assigned (negate l)))) cl)) cls))
   (define newunits
-    (unions (filter-map (λ (cl)
-                          (and (= (length cl) 1)
-                               (not (set-member? assigned (car cl)))
-                               (list (car cl))))
-                        cls*)))
+    (unions (filter-map
+             (λ (cl) (and (= (length cl) 1) (not (set-member? assigned (car cl))) (list (car cl))))
+             cls*)))
   (if (null? newunits)
       (values cls* assigned trail)
-      (unit-subpropagate
-       cls*
-       (foldl (λ (u s) (set-add s u)) assigned newunits)
-       (foldr (λ (p t) (cons (cons p 'deduced) t)) trail newunits))))
+      (unit-subpropagate cls*
+                         (foldl (λ (u s) (set-add s u)) assigned newunits)
+                         (foldr (λ (p t) (cons (cons p 'deduced) t)) trail newunits))))
 
 (define (unit-propagate cls trail)
   (define assigned (foldl (λ (e s) (set-add s (car e))) (set) trail))
@@ -131,15 +149,19 @@
          #t
          (dpli cls (cons (cons (maximize (λ (l) (posneg-count cls* l)) ps) 'guessed) trail*)))]))
 
-(define (dplisat fm) (dpli (defcnfs fm) '()))
-(define (dplitaut fm) (not (dplisat `(not ,fm))))
+(define (dplisat fm)
+  (dpli (defcnfs fm) '()))
+(define (dplitaut fm)
+  (not (dplisat `(not ,fm))))
 
 ;; ===== DPLL with non-chronological backjumping and clause learning =====
 (define (backjump cls p trail)
   (match (backtrack trail)
     [(cons (cons q 'guessed) tt)
      (define-values (cls* trail*) (unit-propagate cls (cons (cons p 'guessed) tt)))
-     (if (member '() cls*) (backjump cls p tt) trail)]
+     (if (member '() cls*)
+         (backjump cls p tt)
+         trail)]
     [_ trail]))
 
 (define (dplb cls trail)
@@ -159,5 +181,7 @@
          #t
          (dplb cls (cons (cons (maximize (λ (l) (posneg-count cls* l)) ps) 'guessed) trail*)))]))
 
-(define (dplbsat fm) (dplb (defcnfs fm) '()))
-(define (dplbtaut fm) (not (dplbsat `(not ,fm))))
+(define (dplbsat fm)
+  (dplb (defcnfs fm) '()))
+(define (dplbtaut fm)
+  (not (dplbsat `(not ,fm))))

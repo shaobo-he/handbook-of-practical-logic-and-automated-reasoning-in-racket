@@ -6,7 +6,15 @@
 (require racket/match)
 (require (only-in racket/list partition))
 (require (only-in "../core/lib.rkt"
-                  tryapplyd setify union subtract intersect image psubset allpairs non))
+                  tryapplyd
+                  setify
+                  union
+                  subtract
+                  intersect
+                  image
+                  psubset
+                  allpairs
+                  non))
 (require "../core/formulas.rkt")
 
 (provide (all-defined-out))
@@ -24,33 +32,42 @@
     [`(imp ,p ,q) (or (not (eval p v)) (eval q v))]
     [`(iff ,p ,q) (eq? (eval p v) (eval q v))]))
 
-(define (atoms fm) (atom-union (λ (a) (list a)) fm))
+(define (atoms fm)
+  (atom-union (λ (a) (list a)) fm))
 
 ;; run subfn on every valuation of ats, conjoining the results
 (define (onallvaluations subfn v ats)
   (match ats
     ['() (subfn v)]
     [(cons p ps)
-     (define (v^ t) (λ (q) (if (equal? q p) t (v q))))
-     (and (onallvaluations subfn (v^ #f) ps)
-          (onallvaluations subfn (v^ #t) ps))]))
+     (define (v^ t)
+       (λ (q)
+         (if (equal? q p)
+             t
+             (v q))))
+     (and (onallvaluations subfn (v^ #f) ps) (onallvaluations subfn (v^ #t) ps))]))
 
 (define (tautology fm)
   (onallvaluations (λ (v) (eval fm v)) (λ (s) #f) (atoms fm)))
 
-(define (unsatisfiable fm) (tautology `(not ,fm)))
-(define (satisfiable fm) (not (unsatisfiable fm)))
+(define (unsatisfiable fm)
+  (tautology `(not ,fm)))
+(define (satisfiable fm)
+  (not (unsatisfiable fm)))
 
 ;; ===== truth tables =====
 (define (print-truthtable fm)
   (define ats (atoms fm))
-  (define (a->s a) (format "~a" a))
+  (define (a->s a)
+    (format "~a" a))
   (define width (add1 (foldl (λ (a w) (max w (string-length (a->s a)))) 5 ats)))
-  (define (fixw s) (string-append s (make-string (max 0 (- width (string-length s))) #\space)))
-  (define (truth b) (fixw (if b "true" "false")))
+  (define (fixw s)
+    (string-append s (make-string (max 0 (- width (string-length s))) #\space)))
+  (define (truth b)
+    (fixw (if b "true" "false")))
   (define (row v)
-    (displayln (string-append (apply string-append (map (λ (x) (truth (v x))) ats))
-                              "| " (truth (eval fm v))))
+    (displayln
+     (string-append (apply string-append (map (λ (x) (truth (v x))) ats)) "| " (truth (eval fm v))))
     #t)
   (define header (string-append (apply string-append (map (λ (a) (fixw (a->s a))) ats)) "| formula"))
   (define sep (make-string (string-length header) #\-))
@@ -101,9 +118,16 @@
     [_ fm]))
 
 ;; ===== literals =====
-(define (negative fm) (match fm [`(not ,p) #t] [_ #f]))
-(define (positive lit) (not (negative lit)))
-(define (negate fm) (match fm [`(not ,p) p] [_ `(not ,fm)]))
+(define (negative fm)
+  (match fm
+    [`(not ,p) #t]
+    [_ #f]))
+(define (positive lit)
+  (not (negative lit)))
+(define (negate fm)
+  (match fm
+    [`(not ,p) p]
+    [_ `(not ,fm)]))
 
 ;; ===== negation normal form =====
 (define (nnf-raw fm)
@@ -111,15 +135,18 @@
     [`(and ,p ,q) `(and ,(nnf-raw p) ,(nnf-raw q))]
     [`(or ,p ,q) `(or ,(nnf-raw p) ,(nnf-raw q))]
     [`(imp ,p ,q) `(or ,(nnf-raw `(not ,p)) ,(nnf-raw q))]
-    [`(iff ,p ,q) `(or (and ,(nnf-raw p) ,(nnf-raw q)) (and ,(nnf-raw `(not ,p)) ,(nnf-raw `(not ,q))))]
+    [`(iff ,p ,q)
+     `(or (and ,(nnf-raw p) ,(nnf-raw q)) (and ,(nnf-raw `(not ,p)) ,(nnf-raw `(not ,q))))]
     [`(not (not ,p)) (nnf-raw p)]
     [`(not (and ,p ,q)) `(or ,(nnf-raw `(not ,p)) ,(nnf-raw `(not ,q)))]
     [`(not (or ,p ,q)) `(and ,(nnf-raw `(not ,p)) ,(nnf-raw `(not ,q)))]
     [`(not (imp ,p ,q)) `(and ,(nnf-raw p) ,(nnf-raw `(not ,q)))]
-    [`(not (iff ,p ,q)) `(or (and ,(nnf-raw p) ,(nnf-raw `(not ,q))) (and ,(nnf-raw `(not ,p)) ,(nnf-raw q)))]
+    [`(not (iff ,p ,q))
+     `(or (and ,(nnf-raw p) ,(nnf-raw `(not ,q))) (and ,(nnf-raw `(not ,p)) ,(nnf-raw q)))]
     [_ fm]))
 
-(define (nnf fm) (nnf-raw (psimplify fm)))
+(define (nnf fm)
+  (nnf-raw (psimplify fm)))
 
 ;; negation normal form keeping <=> (used by definitional CNF)
 (define (nenf-raw fm)
@@ -135,22 +162,34 @@
     [`(iff ,p ,q) `(iff ,(nenf-raw p) ,(nenf-raw q))]
     [_ fm]))
 
-(define (nenf fm) (nenf-raw (psimplify fm)))
+(define (nenf fm)
+  (nenf-raw (psimplify fm)))
 
 ;; ===== satisfying valuations / literal lists =====
 (define (mk-lits pvs v)
-  (list-conj (map (λ (p) (if (eval p v) p `(not ,p))) pvs)))
+  (list-conj (map (λ (p)
+                    (if (eval p v)
+                        p
+                        `(not ,p)))
+                  pvs)))
 
 (define (allsatvaluations subfn v pvs)
   (match pvs
-    ['() (if (subfn v) (list v) '())]
+    ['()
+     (if (subfn v)
+         (list v)
+         '())]
     [(cons p ps)
-     (define (v^ t) (λ (q) (if (equal? q p) t (v q))))
-     (append (allsatvaluations subfn (v^ #f) ps)
-             (allsatvaluations subfn (v^ #t) ps))]))
+     (define (v^ t)
+       (λ (q)
+         (if (equal? q p)
+             t
+             (v q))))
+     (append (allsatvaluations subfn (v^ #f) ps) (allsatvaluations subfn (v^ #t) ps))]))
 
 ;; ===== disjunctive / conjunctive normal form (set-of-sets) =====
-(define (distrib s1 s2) (setify (allpairs union s1 s2)))
+(define (distrib s1 s2)
+  (setify (allpairs union s1 s2)))
 
 (define (purednf fm)
   (match fm
@@ -184,9 +223,11 @@
      (define djs (filter (non trivial) (purednf (nnf fm))))
      (filter (λ (d) (not (ormap (λ (d^) (psubset d^ d)) djs))) djs)]))
 
-(define (dnf fm) (list-disj (map list-conj (simpdnf fm))))
+(define (dnf fm)
+  (list-disj (map list-conj (simpdnf fm))))
 
-(define (purecnf fm) (image (λ (c) (image negate c)) (purednf (nnf `(not ,fm)))))
+(define (purecnf fm)
+  (image (λ (c) (image negate c)) (purednf (nnf `(not ,fm)))))
 
 (define (simpcnf fm)
   (cond
@@ -196,9 +237,13 @@
      (define cjs (filter (non trivial) (purecnf fm)))
      (filter (λ (c) (not (ormap (λ (c^) (psubset c^ c)) cjs))) cjs)]))
 
-(define (cnf fm) (list-conj (map list-disj (simpcnf fm))))
+(define (cnf fm)
+  (list-conj (map list-disj (simpcnf fm))))
 
 ;; ===== printing propositional formulas =====
-(define (print-propvar prec p) (symbol->string p))
-(define (prop-formula->string fm) (formula->string print-propvar fm))
-(define (print-prop-formula fm) (display (string-append "<<" (prop-formula->string fm) ">>")))
+(define (print-propvar prec p)
+  (symbol->string p))
+(define (prop-formula->string fm)
+  (formula->string print-propvar fm))
+(define (print-prop-formula fm)
+  (display (string-append "<<" (prop-formula->string fm) ">>")))

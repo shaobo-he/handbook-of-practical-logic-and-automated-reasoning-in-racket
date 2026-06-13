@@ -4,8 +4,7 @@
 (require "../fol/herbrand.rkt")
 
 ;; Drinker's principle: exists x. forall y. P(x) ==> P(y)   (valid)
-(define drinker
-  '(exists x (forall y (imp (atom (rel P (var x))) (atom (rel P (var y)))))))
+(define drinker '(exists x (forall y (imp (atom (rel P (var x))) (atom (rel P (var y)))))))
 
 ;; universal modus ponens (valid)
 (define ump

@@ -5,8 +5,23 @@
 
 (require racket/match)
 (require (only-in "../core/lib.rkt"
-                  undefined update tryapplyl insert allpairs setify union subtract intersect
-                  apply graph unions unequal equate canonize equated fpf))
+                  undefined
+                  update
+                  tryapplyl
+                  insert
+                  allpairs
+                  setify
+                  union
+                  subtract
+                  intersect
+                  apply
+                  graph
+                  unions
+                  unequal
+                  equate
+                  canonize
+                  equated
+                  fpf))
 (require (only-in "../core/formulas.rkt" overatoms))
 (require (only-in "prop.rkt" nenf psimplify atoms tautology negative positive negate psubst))
 (require (only-in "defcnf.rkt" maincnf var-index))
@@ -32,10 +47,14 @@
   (values p (map cdr (hash-values defs))))
 
 ;; ===== trigger generation =====
-(define (lit-atom lit) (if (negative lit) (negate lit) lit))
+(define (lit-atom lit)
+  (if (negative lit)
+      (negate lit)
+      lit))
 
 (define (align pq)
-  (define p (car pq)) (define q (cdr pq))
+  (define p (car pq))
+  (define q (cdr pq))
   (cond
     [(prop-atom<? (lit-atom p) (lit-atom q)) (align (cons q p))]
     [(negative p) (cons (negate p) (negate q))]
@@ -53,8 +72,10 @@
          (insert pq (irredundant (equate2 pq rel) oth)))]))
 
 (define (consequences peq fm eqs)
-  (define p (car peq)) (define q (cdr peq))
-  (define (follows rs) (tautology `(imp (and (iff ,p ,q) ,fm) (iff ,(car rs) ,(cdr rs)))))
+  (define p (car peq))
+  (define q (cdr peq))
+  (define (follows rs)
+    (tautology `(imp (and (iff ,p ,q) ,fm) (iff ,(car rs) ,(cdr rs)))))
   (irredundant (equate2 peq unequal) (filter follows eqs)))
 
 (define (triggers fm)
@@ -68,19 +89,25 @@
 
 ;; ===== precomputed triggers for the four standard triplets =====
 (define trig-and (triggers '(iff (atom p) (and (atom q) (atom r)))))
-(define trig-or  (triggers '(iff (atom p) (or (atom q) (atom r)))))
+(define trig-or (triggers '(iff (atom p) (or (atom q) (atom r)))))
 (define trig-imp (triggers '(iff (atom p) (imp (atom q) (atom r)))))
 (define trig-iff (triggers '(iff (atom p) (iff (atom q) (atom r)))))
 
-(define (ddnegate fm) (match fm [`(not (not ,p)) p] [_ fm]))
+(define (ddnegate fm)
+  (match fm
+    [`(not (not ,p)) p]
+    [_ fm]))
 
 (define (inst-fn xyz)
   (define subfn (fpf '(p q r) xyz))
   (λ (fm) (ddnegate (psubst subfn fm))))
 
-(define (inst2-fn i pq) (align (cons ((inst-fn i) (car pq)) ((inst-fn i) (cdr pq)))))
-(define (instn-fn i ac) (cons (inst2-fn i (car ac)) (map (λ (c) (inst2-fn i c)) (cdr ac))))
-(define (inst-trigger xyz trig) (map (λ (ac) (instn-fn xyz ac)) trig))
+(define (inst2-fn i pq)
+  (align (cons ((inst-fn i) (car pq)) ((inst-fn i) (cdr pq)))))
+(define (instn-fn i ac)
+  (cons (inst2-fn i (car ac)) (map (λ (c) (inst2-fn i c)) (cdr ac))))
+(define (inst-trigger xyz trig)
+  (map (λ (ac) (instn-fn xyz ac)) trig))
 
 (define (trigger fm)
   (match fm
@@ -92,7 +119,8 @@
 
 ;; ===== relevance: literal -> triggers mentioning it =====
 (define (relevance trigs)
-  (define (insert-relevant p trg f) (update p (insert trg (tryapplyl f p)) f))
+  (define (insert-relevant p trg f)
+    (update p (insert trg (tryapplyl f p)) f))
   (define (insert-relevant2 trg f)
     (define pq (car trg))
     (insert-relevant (car pq) trg (insert-relevant (cdr pq) trg f)))
@@ -100,8 +128,10 @@
 
 ;; ===== merging equivalence classes + relevancies (erf = (eqv . rfn)) =====
 (define (equatecons pq erf)
-  (define p0 (car pq)) (define q0 (cdr pq))
-  (define eqv (car erf)) (define rfn (cdr erf))
+  (define p0 (car pq))
+  (define q0 (cdr pq))
+  (define eqv (car erf))
+  (define rfn (cdr erf))
   (define p (canonize eqv p0))
   (define q (canonize eqv q0))
   (if (equal? p q)
@@ -115,7 +145,8 @@
         (define sq-pos (tryapplyl rfn q))
         (define sq-neg (tryapplyl rfn q*))
         (define rfn*
-          (update (canonize eqv* p) (union sp-pos sq-pos)
+          (update (canonize eqv* p)
+                  (union sp-pos sq-pos)
                   (update (canonize eqv* p*) (union sp-neg sq-neg) rfn)))
         (define nw (union (intersect sp-pos sq-pos) (intersect sp-neg sq-neg)))
         (cons (foldr (λ (x acc) (union (cdr x) acc)) '() nw) (cons eqv* rfn*)))))
@@ -135,7 +166,8 @@
       (cdr (equatecons (cons #t '(not #t)) erf*))
       erf*))
 
-(define (truefalse pfn) (equal? (canonize pfn '(not #t)) (canonize pfn #t)))
+(define (truefalse pfn)
+  (equal? (canonize pfn '(not #t)) (canonize pfn #t)))
 
 (define (equateset s0 eqfn)
   (match s0
@@ -175,7 +207,9 @@
       erf*
       (let ()
         (define erf** (splits n erf* allvars allvars))
-        (if (equal? (car erf**) eqv*) erf** (saturate n erf** '() allvars)))))
+        (if (equal? (car erf**) eqv*)
+            erf**
+            (saturate n erf** '() allvars)))))
 
 (define (splits n erf allvars vars)
   (define eqv (car erf))
@@ -188,26 +222,29 @@
            (define erf0 (saturate (- n 1) erf (list (cons p '(not #t))) allvars))
            (define erf1 (saturate (- n 1) erf (list (cons p #t)) allvars))
            (define erf* (stal-intersect erf0 erf1 erf))
-           (if (truefalse (car erf*)) erf* (splits n erf* allvars ovars))))]))
+           (if (truefalse (car erf*))
+               erf*
+               (splits n erf* allvars ovars))))]))
 
 (define (saturate-upto vars n m trigs assigs)
   (cond
     [(> n m) (error 'stalmarck "Not ~a-easy" m)]
     [else
      (let ()
-       (when (stal-verbose) (printf "*** Starting ~a-saturation\n" n))
+       (when (stal-verbose)
+         (printf "*** Starting ~a-saturation\n" n))
        (define eqv (car (saturate n (cons unequal (relevance trigs)) assigs vars)))
        (or (truefalse eqv) (saturate-upto vars (+ n 1) m trigs assigs)))]))
 
 (define (stalmarck fm)
-  (define (include-trig ec f) (update (car ec) (union (cdr ec) (tryapplyl f (car ec))) f))
+  (define (include-trig ec f)
+    (update (car ec) (union (cdr ec) (tryapplyl f (car ec))) f))
   (define fm* (psimplify `(not ,fm)))
   (cond
     [(equal? fm* #f) #t]
     [(equal? fm* #t) #f]
     [else
      (define-values (p triplets) (triplicate fm*))
-     (define trigfn
-       (foldr (λ (trip f) (foldr include-trig f (trigger trip))) undefined triplets))
+     (define trigfn (foldr (λ (trip f) (foldr include-trig f (trigger trip))) undefined triplets))
      (define vars (map (λ (p) `(atom ,p)) (unions (map atoms triplets))))
      (saturate-upto vars 0 2 (graph trigfn) (list (cons p #t)))]))

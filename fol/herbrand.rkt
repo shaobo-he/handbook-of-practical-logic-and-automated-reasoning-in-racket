@@ -18,12 +18,15 @@
 (define herbrand-verbose (make-parameter #f))
 
 ;; ===== propositional valuation of a first-order atom set =====
-(define (pholds d fm) (eval fm (λ (p) (d `(atom ,p)))))
+(define (pholds d fm)
+  (eval fm (λ (p) (d `(atom ,p)))))
 
 ;; ===== Herbrand universe: constants and functions =====
 (define (herbfuns fm)
   (define-values (cns fns) (partition (λ (fa) (= (cdr fa) 0)) (functions fm)))
-  (if (null? cns) (values (list '(c . 0)) fns) (values cns fns)))
+  (if (null? cns)
+      (values (list '(c . 0)) fns)
+      (values cns fns)))
 
 ;; ===== enumeration of ground terms and m-tuples =====
 (define (groundterms cntms funcs n)
@@ -33,17 +36,20 @@
                (append (map (λ (args) `(fn ,(car fa) ,@args))
                             (groundtuples cntms funcs (- n 1) (cdr fa)))
                        acc))
-             '() funcs)))
+             '()
+             funcs)))
 
 (define (groundtuples cntms funcs n m)
   (if (= m 0)
-      (if (= n 0) (list '()) '())
+      (if (= n 0)
+          (list '())
+          '())
       (foldr (λ (k acc)
-               (append (allpairs cons
-                                 (groundterms cntms funcs k)
-                                 (groundtuples cntms funcs (- n k) (- m 1)))
-                       acc))
-             '() (range 0 (add1 n)))))
+               (append
+                (allpairs cons (groundterms cntms funcs k) (groundtuples cntms funcs (- n k) (- m 1)))
+                acc))
+             '()
+             (range 0 (add1 n)))))
 
 ;; ===== iterate mfn over ground instances until tfn fails =====
 (define (herbloop mfn tfn fl0 cntms funcs fvs n fl tried tuples)
@@ -64,8 +70,7 @@
   (filter (non trivial) (distrib (image (λ (d) (image ifn d)) djs0) djs)))
 
 (define (gilmore-loop djs0 cntms funcs fvs n fl tried tuples)
-  (herbloop gilmore-mfn (λ (djs) (not (null? djs)))
-            djs0 cntms funcs fvs n fl tried tuples))
+  (herbloop gilmore-mfn (λ (djs) (not (null? djs))) djs0 cntms funcs fvs n fl tried tuples))
 
 (define (gilmore fm)
   (define sfm (skolemize `(not ,(generalize fm))))
@@ -93,7 +98,8 @@
   (match dunno
     ['() need]
     [(cons cl dknow)
-     (define (mfn tup acc) (dp-mfn cjs0 (λ (f) (subst (fpf fvs tup) f)) acc))
+     (define (mfn tup acc)
+       (dp-mfn cjs0 (λ (f) (subst (fpf fvs tup) f)) acc))
      (define need*
        (if (dpll (foldr mfn '() (append need dknow)))
            (cons cl need)

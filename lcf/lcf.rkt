@@ -29,16 +29,21 @@
 ;; ===== primitive inference rules =====
 (define (modusponens pq p)
   (match pq
-    [`(imp ,p* ,q) #:when (equal? p p*) q]
+    [`(imp ,p* ,q)
+     #:when (equal? p p*)
+     q]
     [_ (error 'modusponens "modusponens")]))
 
-(define (gen x p) `(forall ,x ,p))
+(define (gen x p)
+  `(forall ,x ,p))
 
 ;; ===== axiom schemes =====
-(define (axiom-addimp p q) `(imp ,p (imp ,q ,p)))
+(define (axiom-addimp p q)
+  `(imp ,p (imp ,q ,p)))
 (define (axiom-distribimp p q r)
   `(imp (imp ,p (imp ,q ,r)) (imp (imp ,p ,q) (imp ,p ,r))))
-(define (axiom-doubleneg p) `(imp (imp (imp ,p #f) #f) ,p))
+(define (axiom-doubleneg p)
+  `(imp (imp (imp ,p #f) #f) ,p))
 (define (axiom-allimp x p q)
   `(imp (forall ,x (imp ,p ,q)) (imp (forall ,x ,p) (forall ,x ,q))))
 (define (axiom-impall x p)
@@ -49,36 +54,50 @@
   (if (occurs-in `(var ,x) t)
       (error 'axiom-existseq "variable free in term")
       `(exists ,x ,(mk-eq `(var ,x) t))))
-(define (axiom-eqrefl t) (mk-eq t t))
+(define (axiom-eqrefl t)
+  (mk-eq t t))
 (define (axiom-funcong f lefts rights)
-  (foldr (λ (s t p) `(imp ,(mk-eq s t) ,p))
-         (mk-eq `(fn ,f ,@lefts) `(fn ,f ,@rights)) lefts rights))
+  (foldr (λ (s t p) `(imp ,(mk-eq s t) ,p)) (mk-eq `(fn ,f ,@lefts) `(fn ,f ,@rights)) lefts rights))
 (define (axiom-predcong p lefts rights)
   (foldr (λ (s t acc) `(imp ,(mk-eq s t) ,acc))
-         `(imp (atom (rel ,p ,@lefts)) (atom (rel ,p ,@rights))) lefts rights))
-(define (axiom-iffimp1 p q) `(imp (iff ,p ,q) (imp ,p ,q)))
-(define (axiom-iffimp2 p q) `(imp (iff ,p ,q) (imp ,q ,p)))
-(define (axiom-impiff p q) `(imp (imp ,p ,q) (imp (imp ,q ,p) (iff ,p ,q))))
+         `(imp (atom (rel ,p ,@lefts)) (atom (rel ,p ,@rights)))
+         lefts
+         rights))
+(define (axiom-iffimp1 p q)
+  `(imp (iff ,p ,q) (imp ,p ,q)))
+(define (axiom-iffimp2 p q)
+  `(imp (iff ,p ,q) (imp ,q ,p)))
+(define (axiom-impiff p q)
+  `(imp (imp ,p ,q) (imp (imp ,q ,p) (iff ,p ,q))))
 (define axiom-true `(iff #t (imp #f #f)))
-(define (axiom-not p) `(iff (not ,p) (imp ,p #f)))
-(define (axiom-and p q) `(iff (and ,p ,q) (imp (imp ,p (imp ,q #f)) #f)))
-(define (axiom-or p q) `(iff (or ,p ,q) (not (and (not ,p) (not ,q)))))
-(define (axiom-exists x p) `(iff (exists ,x ,p) (not (forall ,x (not ,p)))))
+(define (axiom-not p)
+  `(iff (not ,p) (imp ,p #f)))
+(define (axiom-and p q)
+  `(iff (and ,p ,q) (imp (imp ,p (imp ,q #f)) #f)))
+(define (axiom-or p q)
+  `(iff (or ,p ,q) (not (and (not ,p) (not ,q)))))
+(define (axiom-exists x p)
+  `(iff (exists ,x ,p) (not (forall ,x (not ,p)))))
 
-(define (concl c) c)
+(define (concl c)
+  c)
 
 ;; ===== printing =====
 (define (term->string tm)
   (match tm
     [`(var ,x) (symbol->string x)]
     [`(fn ,f) (symbol->string f)]
-    [`(fn ,f ,@args) (string-append (symbol->string f) "(" (string-join (map term->string args) ",") ")")]))
+    [`(fn ,f ,@args)
+     (string-append (symbol->string f) "(" (string-join (map term->string args) ",") ")")]))
 
 (define (fol-atom->string prec a)
   (match a
     [`(rel = ,s ,t) (string-append (term->string s) " = " (term->string t))]
     [`(rel ,p) (symbol->string p)]
-    [`(rel ,p ,@args) (string-append (symbol->string p) "(" (string-join (map term->string args) ",") ")")]))
+    [`(rel ,p ,@args)
+     (string-append (symbol->string p) "(" (string-join (map term->string args) ",") ")")]))
 
-(define (thm->string th) (string-append "|- " (formula->string fol-atom->string (concl th))))
-(define (print-thm th) (display (thm->string th)))
+(define (thm->string th)
+  (string-append "|- " (formula->string fol-atom->string (concl th))))
+(define (print-thm th)
+  (display (thm->string th)))

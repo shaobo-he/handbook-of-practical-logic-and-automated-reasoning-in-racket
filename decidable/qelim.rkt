@@ -21,8 +21,7 @@
   (define-values (ycjs ncjs) (partition (λ (c) (member x (fv c))) cjs))
   (if (null? ycjs)
       p
-      (let ([q (bfn `(exists ,x ,(list-conj ycjs)))])
-        (foldr mk-and q ncjs))))
+      (let ([q (bfn `(exists ,x ,(list-conj ycjs)))]) (foldr mk-and q ncjs))))
 
 ;; lift a basic existential procedure to all formulas
 (define (lift-qelim afn nfn qfn)
@@ -75,14 +74,29 @@
      (cond
        [eqn
         (define st (dest-eq eqn))
-        (define y (if (equal? (car st) `(var ,x)) (cdr st) (car st)))
+        (define y
+          (if (equal? (car st) `(var ,x))
+              (cdr st)
+              (car st)))
         (list-conj (map (λ (c) (subst (update x y undefined) c)) (subtract cjs (list eqn))))]
        [(member `(atom (rel < (var ,x) (var ,x))) cjs) #f]
        [else
         (define-values (lefts rights)
-          (partition (λ (a) (match a [`(atom (rel < ,s ,t)) (equal? t `(var ,x))] [_ #f])) cjs))
-        (define ls (map (λ (a) (match a [`(atom (rel < ,l ,r)) l])) lefts))
-        (define rs (map (λ (a) (match a [`(atom (rel < ,l ,r)) r])) rights))
+          (partition (λ (a)
+                       (match a
+                         [`(atom (rel < ,s ,t)) (equal? t `(var ,x))]
+                         [_ #f]))
+                     cjs))
+        (define ls
+          (map (λ (a)
+                 (match a
+                   [`(atom (rel < ,l ,r)) l]))
+               lefts))
+        (define rs
+          (map (λ (a)
+                 (match a
+                   [`(atom (rel < ,l ,r)) r]))
+               rights))
         (list-conj (allpairs (λ (l r) `(atom (rel < ,l ,r))) ls rs))])]
     [_ (error 'dlobasic "dlobasic")]))
 
@@ -93,5 +107,4 @@
     [`(atom (rel > ,s ,t)) `(atom (rel < ,t ,s))]
     [_ fm]))
 
-(define quelim-dlo
-  (lift-qelim afn-dlo (λ (fm) (dnf ((cnnf lfn-dlo) fm))) (λ (v) dlobasic)))
+(define quelim-dlo (lift-qelim afn-dlo (λ (fm) (dnf ((cnnf lfn-dlo) fm))) (λ (v) dlobasic)))

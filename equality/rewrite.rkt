@@ -20,12 +20,12 @@
 
 ;; rewrite to normal form
 (define (rewrite eqs tm)
-  (with-handlers
-    ([exn:fail?
-      (λ (e)
-        (match tm
-          [`(var ,x) tm]
-          [`(fn ,f ,@args)
-           (define tm* `(fn ,f ,@(map (λ (a) (rewrite eqs a)) args)))
-           (if (equal? tm* tm) tm (rewrite eqs tm*))]))])
+  (with-handlers ([exn:fail? (λ (e)
+                               (match tm
+                                 [`(var ,x) tm]
+                                 [`(fn ,f ,@args)
+                                  (define tm* `(fn ,f ,@(map (λ (a) (rewrite eqs a)) args)))
+                                  (if (equal? tm* tm)
+                                      tm
+                                      (rewrite eqs tm*))]))])
     (rewrite eqs (rewrite1 eqs tm))))

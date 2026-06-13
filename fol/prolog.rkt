@@ -38,18 +38,20 @@
     [(cons g gs)
      (if (= n 0)
          (error 'prolog "Too deep")
-         (tryfind (λ (rule)
-                    (define-values (rc k*) (renamerule k rule))
-                    (backchain rules (- n 1) k*
-                               (unify-literals env (cons (cdr rc) g))
-                               (append (car rc) gs)))
-                  rules))]))
+         (tryfind
+          (λ (rule)
+            (define-values (rc k*) (renamerule k rule))
+            (backchain rules (- n 1) k* (unify-literals env (cons (cdr rc) g)) (append (car rc) gs)))
+          rules))]))
 
 (define (hornify cls)
   (define-values (pos neg) (partition positive cls))
   (if (> (length pos) 1)
       (error 'prolog "non-Horn clause")
-      (cons (map negate neg) (if (null? pos) #f (car pos)))))
+      (cons (map negate neg)
+            (if (null? pos)
+                #f
+                (car pos)))))
 
 (define (hornprove fm)
   (define rules (map hornify (simpcnf (skolemize `(not ,(generalize fm))))))

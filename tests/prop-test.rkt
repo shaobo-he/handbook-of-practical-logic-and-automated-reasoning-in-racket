@@ -4,7 +4,8 @@
 (require "../prop/prop.rkt")
 
 ;; ===== evaluation =====
-(define (v->fn alist) (λ (x) (cdr (assoc x alist))))
+(define (v->fn alist)
+  (λ (x) (cdr (assoc x alist))))
 (check-true (eval '(and (atom p) (atom q)) (v->fn '((p . #t) (q . #t)))))
 (check-false (eval '(and (atom p) (atom q)) (v->fn '((p . #t) (q . #f)))))
 (check-true (eval '(imp (atom p) (atom q)) (v->fn '((p . #f) (q . #f)))))

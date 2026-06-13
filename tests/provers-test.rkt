@@ -1,15 +1,15 @@
 #lang racket/base
 
 (require rackunit)
-(require "../fol/tableaux.rkt" "../fol/resolution.rkt" "../fol/prolog.rkt" "../fol/meson.rkt")
+(require "../fol/tableaux.rkt"
+         "../fol/resolution.rkt"
+         "../fol/prolog.rkt"
+         "../fol/meson.rkt")
 
-(define peirce
-  '(imp (imp (imp (atom (rel P)) (atom (rel Q))) (atom (rel P))) (atom (rel P))))
-(define drinker
-  '(exists x (forall y (imp (atom (rel P (var x))) (atom (rel P (var y)))))))
+(define peirce '(imp (imp (imp (atom (rel P)) (atom (rel Q))) (atom (rel P))) (atom (rel P))))
+(define drinker '(exists x (forall y (imp (atom (rel P (var x))) (atom (rel P (var y)))))))
 (define horn
-  '(imp (and (and (imp (atom (rel P)) (atom (rel Q)))
-                  (imp (atom (rel Q)) (atom (rel R))))
+  '(imp (and (and (imp (atom (rel P)) (atom (rel Q))) (imp (atom (rel Q)) (atom (rel R))))
              (atom (rel P)))
         (atom (rel R))))
 
@@ -17,8 +17,10 @@
 ;; any disjunct can't be refuted; returning normally means "proved". An empty
 ;; list is a valid proof (every disjunct was trivially unsatisfiable).
 ;; resolution marks each refuted disjunct with #t; MESON with its proof depth.
-(define (all-true? l) (andmap (λ (x) (eq? x #t)) l))
-(define (all-nat? l) (andmap exact-nonnegative-integer? l))
+(define (all-true? l)
+  (andmap (λ (x) (eq? x #t)) l))
+(define (all-nat? l)
+  (andmap exact-nonnegative-integer? l))
 
 ;; ===== tableaux / Prawitz =====
 (check-pred exact-nonnegative-integer? (tab peirce))
@@ -36,7 +38,7 @@
 (check-pred all-nat? (meson001 peirce))
 (check-pred all-nat? (meson002 drinker))
 (check-pred all-nat? (meson horn))
-(check-pred pair? (meson002 drinker))   ; drinker really needs a refutation
+(check-pred pair? (meson002 drinker)) ; drinker really needs a refutation
 
 ;; ===== Horn backchaining =====
 (check-pred pair? (hornprove horn))
@@ -47,7 +49,6 @@
         (cons (list '(atom (rel <= (var x) (var y))))
               '(atom (rel <= (fn S (var x)) (fn S (var y)))))))
 ;; ground query succeeds (returns a substitution)
-(check-pred hash?
-            (simpleprolog le-rules '(atom (rel <= (fn S (fn |0|)) (fn S (fn S (fn |0|)))))))
+(check-pred hash? (simpleprolog le-rules '(atom (rel <= (fn S (fn |0|)) (fn S (fn S (fn |0|)))))))
 ;; query with a variable yields one binding for z
 (check-equal? (length (prolog le-rules '(atom (rel <= (fn S (fn |0|)) (var z))))) 1)

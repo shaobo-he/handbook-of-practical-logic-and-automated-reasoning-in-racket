@@ -9,7 +9,14 @@
 (require racket/match)
 (require (only-in "../core/lib.rkt" funpow update undefined))
 (require (only-in "../core/formulas.rkt"
-                  dest-imp dest-and antecedent consequent mk-imp mk-and list-conj end-itlist))
+                  dest-imp
+                  dest-and
+                  antecedent
+                  consequent
+                  mk-imp
+                  mk-and
+                  list-conj
+                  end-itlist))
 (require (only-in "../fol/fol.rkt" subst fv))
 (require "lcf.rkt")
 (require "lcfprop.rkt")
@@ -22,7 +29,10 @@
 
 ;; ===== setting up and finishing goals =====
 (define (set-goal p)
-  (define (chk th) (if (equal? (concl th) p) th (error 'set-goal "wrong theorem")))
+  (define (chk th)
+    (if (equal? (concl th) p)
+        th
+        (error 'set-goal "wrong theorem")))
   (goals (list (cons '() p)) (λ (ths) (chk (modusponens (car ths) truth)))))
 
 (define (extract-thm gls)
@@ -30,8 +40,10 @@
     [(goals '() jfn) (jfn '())]
     [_ (error 'extract-thm "unsolved goals")]))
 
-(define (tac-proof g prf) (extract-thm (foldl (λ (t acc) (t acc)) g prf)))
-(define (prove p prf) (tac-proof (set-goal p) prf))
+(define (tac-proof g prf)
+  (extract-thm (foldl (λ (t acc) (t acc)) g prf)))
+(define (prove p prf)
+  (tac-proof (set-goal p) prf))
 
 ;; ===== structural tactics =====
 (define (conj-intro-tac g)
@@ -42,7 +54,9 @@
   (goals (cons (cons asl p) (cons (cons asl q) gls)) jfn*))
 
 (define (jmodify jfn tfn)
-  (λ (ths) (match-define (cons th oths) ths) (jfn (cons (tfn th) oths))))
+  (λ (ths)
+    (match-define (cons th oths) ths)
+    (jfn (cons (tfn th) oths))))
 
 (define (gen-right-alpha y x th)
   (define th1 (gen-right y th))
@@ -57,7 +71,9 @@
 
 (define (right-exists x t p)
   (define th (contrapos (ispec t `(forall ,x (not ,p)))))
-  (define p* (match (antecedent (concl th)) [`(not (not ,p2)) p2]))
+  (define p*
+    (match (antecedent (concl th))
+      [`(not (not ,p2)) p2]))
   (end-itlist imp-trans
               (list (imp-contr p* #f)
                     (imp-add-concl #f (iff-imp1 (axiom-not p*)))
@@ -72,7 +88,10 @@
 
 (define (imp-intro-tac s g)
   (match-define (goals (cons (cons asl `(imp ,p ,q)) gls) jfn) g)
-  (define jmod (if (null? asl) (λ (th) (add-assum #t th)) (λ (th) (imp-swap (shunt th)))))
+  (define jmod
+    (if (null? asl)
+        (λ (th) (add-assum #t th))
+        (λ (th) (imp-swap (shunt th)))))
   (goals (cons (cons (cons (cons s p) asl) q) gls) (jmodify jfn jmod)))
 
 ;; ===== assumptions and justification =====
@@ -82,7 +101,9 @@
 
 (define (firstassum asl)
   (define p (cdr (car asl)))
-  (if (null? (cdr asl)) (imp-refl p) (and-left p (list-conj (map cdr (cdr asl))))))
+  (if (null? (cdr asl))
+      (imp-refl p)
+      (and-left p (list-conj (map cdr (cdr asl))))))
 
 (define (using ths p g)
   (map (λ (th) (assumptate g (foldr (λ (v acc) (gen v acc)) th (fv (concl th))))) ths))
@@ -108,7 +129,9 @@
     [(and (= (length ths) 1) (equal? (consequent (concl (car ths))) p)) (car ths)]
     [else
      (define th (lcffol (foldr (λ (t acc) (mk-imp (consequent (concl t)) acc)) p ths)))
-     (if (null? ths) (assumptate g th) (imp-trans-chain ths th))]))
+     (if (null? ths)
+         (assumptate g th)
+         (imp-trans-chain ths th))]))
 
 (define (proof tacs p g)
   (match-define (goals (cons (cons asl w) gls) jfn) g)
@@ -116,7 +139,8 @@
 
 ;; the empty justification ("at once")
 (define once '())
-(define (at hyps p g) '())
+(define (at hyps p g)
+  '())
 
 (define (auto-tac byfn hyps g)
   (match-define (goals (cons (cons asl w) gls) jfn) g)
@@ -125,8 +149,12 @@
 
 (define (lemma-tac s p byfn hyps g)
   (match-define (goals (cons (cons asl w) gls) jfn) g)
-  (define (tr th) (imp-trans (justify byfn hyps p g) th))
-  (define mfn (if (null? asl) tr (λ (th) (imp-unduplicate (tr (shunt th))))))
+  (define (tr th)
+    (imp-trans (justify byfn hyps p g) th))
+  (define mfn
+    (if (null? asl)
+        tr
+        (λ (th) (imp-unduplicate (tr (shunt th))))))
   (goals (cons (cons (cons (cons s p) asl) w) gls) (jmodify jfn mfn)))
 
 (define (exists-elim-tac l fm byfn hyps g)
@@ -136,7 +164,8 @@
       (error 'exists-elim-tac "variable free in assumptions")
       (let ()
         (define th (justify byfn hyps fm g))
-        (define (jfn* pth) (imp-unduplicate (imp-trans th (exists-left x (shunt pth)))))
+        (define (jfn* pth)
+          (imp-unduplicate (imp-trans th (exists-left x (shunt pth)))))
         (goals (cons (cons (cons (cons l p) asl) w) gls) (jmodify jfn jfn*)))))
 
 (define (ante-disj th1 th2)
@@ -166,18 +195,27 @@
   (if (not (equal? (end-itlist mk-and (map cdr lps)) p))
       (error 'assume "assume")
       (goals (cons (cons (append lps asl) q) gls)
-             (jmodify jfn (λ (th) (if (null? asl) (add-assum #t th) (multishunt (length lps) th)))))))
+             (jmodify jfn
+                      (λ (th)
+                        (if (null? asl)
+                            (add-assum #t th)
+                            (multishunt (length lps) th)))))))
 
-(define (note lp) (lemma-tac (car lp) (cdr lp)))
-(define (have p) (note (cons "" p)))
+(define (note lp)
+  (lemma-tac (car lp) (cdr lp)))
+(define (have p)
+  (note (cons "" p)))
 (define (so tac arg byfn)
-  (tac arg (λ (hyps p g)
-             (match-define (goals (cons (cons asl w) _) _) g)
-             (cons (firstassum asl) (byfn hyps p g)))))
+  (tac arg
+       (λ (hyps p g)
+         (match-define (goals (cons (cons asl w) _) _) g)
+         (cons (firstassum asl) (byfn hyps p g)))))
 (define fix forall-intro-tac)
-(define (consider xp) (exists-elim-tac "" `(exists ,(car xp) ,(cdr xp))))
+(define (consider xp)
+  (exists-elim-tac "" `(exists ,(car xp) ,(cdr xp))))
 (define take exists-intro-tac)
-(define (cases fm byfn hyps g) (disj-elim-tac "" fm byfn hyps g))
+(define (cases fm byfn hyps g)
+  (disj-elim-tac "" fm byfn hyps g))
 
 (define (conclude p byfn hyps g)
   (match-define (goals (cons (cons asl w) gls) jfn) g)

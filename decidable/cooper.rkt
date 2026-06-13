@@ -17,14 +17,18 @@
 (provide (all-defined-out))
 
 ;; ===== numerals =====
-(define (mk-numeral n) `(fn ,(string->symbol (number->string n))))
+(define (mk-numeral n)
+  `(fn ,(string->symbol (number->string n))))
 (define (dest-numeral t)
   (match t
     [`(fn ,ns) (or (string->number (symbol->string ns)) (error 'dest-numeral "dest_numeral"))]
     [_ (error 'dest-numeral "dest_numeral")]))
-(define (is-numeral t) (can dest-numeral t))
-(define (numeral1 fn n) (mk-numeral (fn (dest-numeral n))))
-(define (numeral2 fn m n) (mk-numeral (fn (dest-numeral m) (dest-numeral n))))
+(define (is-numeral t)
+  (can dest-numeral t))
+(define (numeral1 fn n)
+  (mk-numeral (fn (dest-numeral n))))
+(define (numeral2 fn m n)
+  (mk-numeral (fn (dest-numeral m) (dest-numeral n))))
 
 (define zero (mk-numeral 0))
 (define one (mk-numeral 1))
@@ -34,8 +38,7 @@
   (if (= n 0)
       zero
       (match tm
-        [`(fn + (fn * ,c ,x) ,r)
-         `(fn + (fn * ,(numeral1 (λ (z) (* n z)) c) ,x) ,(linear-cmul n r))]
+        [`(fn + (fn * ,c ,x) ,r) `(fn + (fn * ,(numeral1 (λ (z) (* n z)) c) ,x) ,(linear-cmul n r))]
         [k (numeral1 (λ (z) (* n z)) k)])))
 
 (define (linear-add vars tm1 tm2)
@@ -49,14 +52,14 @@
             `(fn + (fn * ,c (var ,x1)) ,(linear-add vars r1 r2)))]
        [(earlier vars x1 x2) `(fn + (fn * ,c1 (var ,x1)) ,(linear-add vars r1 tm2))]
        [else `(fn + (fn * ,c2 (var ,x2)) ,(linear-add vars tm1 r2))])]
-    [(`(fn + (fn * ,c1 (var ,x1)) ,r1) k2)
-     `(fn + (fn * ,c1 (var ,x1)) ,(linear-add vars r1 k2))]
-    [(k1 `(fn + (fn * ,c2 (var ,x2)) ,r2))
-     `(fn + (fn * ,c2 (var ,x2)) ,(linear-add vars k1 r2))]
+    [(`(fn + (fn * ,c1 (var ,x1)) ,r1) k2) `(fn + (fn * ,c1 (var ,x1)) ,(linear-add vars r1 k2))]
+    [(k1 `(fn + (fn * ,c2 (var ,x2)) ,r2)) `(fn + (fn * ,c2 (var ,x2)) ,(linear-add vars k1 r2))]
     [(_ _) (numeral2 + tm1 tm2)]))
 
-(define (linear-neg tm) (linear-cmul -1 tm))
-(define (linear-sub vars tm1 tm2) (linear-add vars tm1 (linear-neg tm2)))
+(define (linear-neg tm)
+  (linear-cmul -1 tm))
+(define (linear-sub vars tm1 tm2)
+  (linear-add vars tm1 (linear-neg tm2)))
 (define (linear-mul tm1 tm2)
   (cond
     [(is-numeral tm1) (linear-cmul (dest-numeral tm1) tm2)]
@@ -70,10 +73,14 @@
     [`(fn + ,s ,t) (linear-add vars (lint vars s) (lint vars t))]
     [`(fn - ,s ,t) (linear-sub vars (lint vars s) (lint vars t))]
     [`(fn * ,s ,t) (linear-mul (lint vars s) (lint vars t))]
-    [_ (if (is-numeral tm) tm (error 'lint "unknown term"))]))
+    [_
+     (if (is-numeral tm)
+         tm
+         (error 'lint "unknown term"))]))
 
 ;; ===== linearize atoms; drop non-strict inequalities =====
-(define (mkatom vars p t) `(atom (rel ,p ,zero ,(lint vars t))))
+(define (mkatom vars p t)
+  `(atom (rel ,p ,zero ,(lint vars t))))
 
 (define (linform vars fm)
   (match fm
@@ -93,7 +100,9 @@
 ;; ===== make the coefficient of x equal to 1 =====
 (define (formlcm x fm)
   (match fm
-    [`(atom (rel ,p ,_ (fn + (fn * ,c ,y) ,z))) #:when (equal? y x) (abs (dest-numeral c))]
+    [`(atom (rel ,p ,_ (fn + (fn * ,c ,y) ,z)))
+     #:when (equal? y x)
+     (abs (dest-numeral c))]
     [`(not ,p) (formlcm x p)]
     [`(and ,p ,q) (lcm (formlcm x p) (formlcm x q))]
     [`(or ,p ,q) (lcm (formlcm x p) (formlcm x q))]
@@ -101,9 +110,13 @@
 
 (define (adjustcoeff x l fm)
   (match fm
-    [`(atom (rel ,p ,d (fn + (fn * ,c ,y) ,z))) #:when (equal? y x)
+    [`(atom (rel ,p ,d (fn + (fn * ,c ,y) ,z)))
+     #:when (equal? y x)
      (define m (quotient l (dest-numeral c)))
-     (define n (if (equal? p '<) (abs m) m))
+     (define n
+       (if (equal? p '<)
+           (abs m)
+           m))
      (define xtm `(fn * ,(mk-numeral (quotient m n)) ,x))
      `(atom (rel ,p ,(linear-cmul (abs m) d) (fn + ,xtm ,(linear-cmul n z))))]
     [`(not ,p) `(not ,(adjustcoeff x l p))]
@@ -122,8 +135,11 @@
 ;; ===== minus-infinity formula and divisor LCM =====
 (define (minusinf x fm)
   (match fm
-    [`(atom (rel = (fn |0|) (fn + (fn * (fn |1|) ,y) ,a))) #:when (equal? y x) #f]
-    [`(atom (rel < (fn |0|) (fn + (fn * ,pm1 ,y) ,a))) #:when (equal? y x)
+    [`(atom (rel = (fn |0|) (fn + (fn * (fn |1|) ,y) ,a)))
+     #:when (equal? y x)
+     #f]
+    [`(atom (rel < (fn |0|) (fn + (fn * ,pm1 ,y) ,a)))
+     #:when (equal? y x)
      (if (equal? pm1 one) #f #t)]
     [`(not ,p) `(not ,(minusinf x p))]
     [`(and ,p ,q) `(and ,(minusinf x p) ,(minusinf x q))]
@@ -132,7 +148,9 @@
 
 (define (divlcm x fm)
   (match fm
-    [`(atom (rel divides ,d (fn + (fn * ,c ,y) ,a))) #:when (equal? y x) (dest-numeral d)]
+    [`(atom (rel divides ,d (fn + (fn * ,c ,y) ,a)))
+     #:when (equal? y x)
+     (dest-numeral d)]
     [`(not ,p) (divlcm x p)]
     [`(and ,p ,q) (lcm (divlcm x p) (divlcm x q))]
     [`(or ,p ,q) (lcm (divlcm x p) (divlcm x q))]
@@ -141,9 +159,15 @@
 ;; ===== B-set and linear replacement =====
 (define (bset x fm)
   (match fm
-    [`(not (atom (rel = (fn |0|) (fn + (fn * (fn |1|) ,y) ,a)))) #:when (equal? y x) (list (linear-neg a))]
-    [`(atom (rel = (fn |0|) (fn + (fn * (fn |1|) ,y) ,a))) #:when (equal? y x) (list (linear-neg (linear-add '() a one)))]
-    [`(atom (rel < (fn |0|) (fn + (fn * (fn |1|) ,y) ,a))) #:when (equal? y x) (list (linear-neg a))]
+    [`(not (atom (rel = (fn |0|) (fn + (fn * (fn |1|) ,y) ,a))))
+     #:when (equal? y x)
+     (list (linear-neg a))]
+    [`(atom (rel = (fn |0|) (fn + (fn * (fn |1|) ,y) ,a)))
+     #:when (equal? y x)
+     (list (linear-neg (linear-add '() a one)))]
+    [`(atom (rel < (fn |0|) (fn + (fn * (fn |1|) ,y) ,a)))
+     #:when (equal? y x)
+     (list (linear-neg a))]
     [`(not ,p) (bset x p)]
     [`(and ,p ,q) (union (bset x p) (bset x q))]
     [`(or ,p ,q) (union (bset x p) (bset x q))]
@@ -151,7 +175,8 @@
 
 (define (linrep vars x t fm)
   (match fm
-    [`(atom (rel ,p ,d (fn + (fn * ,c ,y) ,a))) #:when (equal? y x)
+    [`(atom (rel ,p ,d (fn + (fn * ,c ,y) ,a)))
+     #:when (equal? y x)
      (define ct (linear-cmul (dest-numeral c) t))
      `(atom (rel ,p ,d ,(linear-add vars ct a)))]
     [`(not ,p) `(not ,(linrep vars x t p))]
@@ -168,7 +193,8 @@
      (define p-inf (simplify (minusinf x p)))
      (define bs (bset x p))
      (define js (range 1 (add1 (divlcm x p))))
-     (define (p-element j b) (linrep vars x (linear-add vars b (mk-numeral j)) p))
+     (define (p-element j b)
+       (linrep vars x (linear-add vars b (mk-numeral j)) p))
      (define (stage j)
        (list-disj (cons (linrep vars x (mk-numeral j) p-inf) (map (λ (b) (p-element j b)) bs))))
      (list-disj (map stage js))]
@@ -176,25 +202,29 @@
 
 ;; ===== evaluate constant atoms =====
 (define operations
-  (list (cons '= =) (cons '< <) (cons '> >) (cons '<= <=) (cons '>= >=)
+  (list (cons '= =)
+        (cons '< <)
+        (cons '> >)
+        (cons '<= <=)
+        (cons '>= >=)
         (cons 'divides (λ (x y) (= (modulo y x) 0)))))
 
 (define (evalc fm)
-  (onatoms
-   (λ (at)
-     (with-handlers ([exn:fail? (λ (e) `(atom ,at))])
-       (match at
-         [`(rel ,p ,s ,t)
-          (define op (cdr (assoc p operations)))
-          (if (op (dest-numeral s) (dest-numeral t)) #t #f)])))
-   fm))
+  (onatoms (λ (at)
+             (with-handlers ([exn:fail? (λ (e) `(atom ,at))])
+               (match at
+                 [`(rel ,p ,s ,t)
+                  (define op (cdr (assoc p operations)))
+                  (if (op (dest-numeral s) (dest-numeral t)) #t #f)])))
+           fm))
 
 ;; ===== overall procedures =====
 (define integer-qelim
   (λ (fm)
-    (simplify
-     (evalc ((lift-qelim linform (λ (g) ((cnnf posineq) (evalc g)))
-                         (λ (vars) (λ (f) (cooper vars f)))) fm)))))
+    (simplify (evalc ((lift-qelim linform
+                                  (λ (g) ((cnnf posineq) (evalc g)))
+                                  (λ (vars) (λ (f) (cooper vars f))))
+                      fm)))))
 
 (define (relativize r fm)
   (match fm

@@ -71,15 +71,21 @@
        [else (error 'normalize-and-orient "Can't orient equation")])]))
 
 (define (status trip eqs0)
-  (define eqs (car trip)) (define def (cadr trip)) (define crs (caddr trip))
+  (define eqs (car trip))
+  (define def (cadr trip))
+  (define crs (caddr trip))
   (when (and (completion-verbose)
              (not (and (equal? eqs eqs0) (not (= 0 (modulo (length crs) 1000))))))
     (printf "~a equations and ~a pending critical pairs + ~a deferred\n"
-            (length eqs) (length crs) (length def))))
+            (length eqs)
+            (length crs)
+            (length def))))
 
 ;; ===== completion main loop (trip = (list eqs deferred crits)) =====
 (define (complete ord trip)
-  (define eqs (car trip)) (define def (cadr trip)) (define crits (caddr trip))
+  (define eqs (car trip))
+  (define def (cadr trip))
+  (define crits (caddr trip))
   (match crits
     [(cons eq ocrits)
      (define trip*
@@ -90,7 +96,8 @@
              (let ()
                (define eq* (mk-eq s* t*))
                (define eqs* (cons eq* eqs))
-               (list eqs* def
+               (list eqs*
+                     def
                      (append ocrits
                              (foldr (λ (e acc) (append (critical-pairs eq* e) acc)) '() eqs*)))))))
      (status trip* eqs)
@@ -113,7 +120,8 @@
      (interreduce dun* oeqs)]))
 
 (define (complete-and-simplify wts eqs)
-  (define (ord s t) (lpo-ge (λ (p q) (weight wts p q)) s t))
+  (define (ord s t)
+    (lpo-ge (λ (p q) (weight wts p q)) s t))
   (define eqs*
     (map (λ (e)
            (define-values (l r) (normalize-and-orient ord '() e))

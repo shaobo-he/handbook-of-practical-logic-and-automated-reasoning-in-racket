@@ -8,7 +8,15 @@
 (require racket/match)
 (require (only-in racket/list partition range))
 (require (only-in "../core/lib.rkt"
-                  unions union subtract fpf update undefined can tryfind distinctpairs))
+                  unions
+                  union
+                  subtract
+                  fpf
+                  update
+                  undefined
+                  can
+                  tryfind
+                  distinctpairs))
 (require (only-in "../core/formulas.rkt" list-conj dest-imp))
 (require (only-in "../prop/prop.rkt" simpdnf negate))
 (require (only-in "../fol/fol.rkt" fv fvt functions subst generalize))
@@ -64,8 +72,11 @@
     [`(var ,x) (cont tm n defs)]
     [`(fn ,f ,@args)
      (if ((car lang) (cons f (length args)))
-         (listify (λ (a c n2 d2) (homot lang a c n2 d2)) args
-                  (λ (a n2 d2) (cont `(fn ,f ,@a) n2 d2)) n defs)
+         (listify (λ (a c n2 d2) (homot lang a c n2 d2))
+                  args
+                  (λ (a n2 d2) (cont `(fn ,f ,@a) n2 d2))
+                  n
+                  defs)
          (let ([nv `(var ,(string->symbol (string-append "v_" (number->string n))))])
            (cont nv (+ n 1) (cons (mk-eq nv tm) defs))))]))
 
@@ -74,17 +85,22 @@
     [`(not ,f) (homol langs f (λ (p n2 d2) (cont `(not ,p) n2 d2)) n defs)]
     [`(atom (rel ,p ,@args))
      (define lang (chooselang langs fm))
-     (listify (λ (a c n2 d2) (homot lang a c n2 d2)) args
-              (λ (a n2 d2) (cont `(atom (rel ,p ,@a)) n2 d2)) n defs)]
+     (listify (λ (a c n2 d2) (homot lang a c n2 d2))
+              args
+              (λ (a n2 d2) (cont `(atom (rel ,p ,@a)) n2 d2))
+              n
+              defs)]
     [_ (error 'homol "not a literal")]))
 
 (define (homo langs fms cont n defs)
-  (listify (λ (f c n2 d2) (homol langs f c n2 d2)) fms
+  (listify (λ (f c n2 d2) (homol langs f c n2 d2))
+           fms
            (λ (dun n2 defs2)
              (if (null? defs2)
                  (cont dun n2 defs2)
                  (homo langs defs2 (λ (res n3 d3) (cont (append dun res) n3 d3)) n2 '())))
-           n defs))
+           n
+           defs))
 
 (define (homogenize langs fms)
   (define fvs (unions (map fv fms)))
@@ -98,7 +114,10 @@
 
 (define (langpartition langs fms)
   (match langs
-    ['() (if (null? fms) '() (error 'langpartition "langpartition"))]
+    ['()
+     (if (null? fms)
+         '()
+         (error 'langpartition "langpartition"))]
     [(cons l ls)
      (define-values (fms1 fms2) (partition (λ (fm) (belongs l fm)) fms))
      (cons fms1 (langpartition ls fms2))]))
@@ -118,21 +137,28 @@
 ;; ===== reduce with trivial equations =====
 (define (dest-def fm)
   (match fm
-    [`(atom (rel = (var ,x) ,t)) #:when (not (member x (fvt t))) (cons x t)]
-    [`(atom (rel = ,t (var ,x))) #:when (not (member x (fvt t))) (cons x t)]
+    [`(atom (rel = (var ,x) ,t))
+     #:when (not (member x (fvt t)))
+     (cons x t)]
+    [`(atom (rel = ,t (var ,x)))
+     #:when (not (member x (fvt t)))
+     (cons x t)]
     [_ (error 'dest-def "dest_def")]))
 
 (define (redeqs eqs)
   (define eq (findf (λ (e) (can dest-def e)) eqs))
   (if eq
       (let ([xt (dest-def eq)])
-        (redeqs (map (λ (e) (subst (update (car xt) (cdr xt) undefined) e)) (subtract eqs (list eq)))))
+        (redeqs (map (λ (e) (subst (update (car xt) (cdr xt) undefined) e))
+                     (subtract eqs (list eq)))))
       eqs))
 
 ;; ===== Nelson-Oppen =====
 (define (trydps ldseps fms)
-  (ormap (λ (lsep) (let ([dp (caddr (car lsep))] [fms0 (cdr lsep)])
-                     (dp `(not ,(list-conj (redeqs (append fms0 fms)))))))
+  (ormap (λ (lsep)
+           (let ([dp (caddr (car lsep))]
+                 [fms0 (cdr lsep)])
+             (dp `(not ,(list-conj (redeqs (append fms0 fms)))))))
          ldseps))
 
 (define (allpartitions l)
@@ -152,7 +178,13 @@
            (findasubset (λ (s) (p (cons h s))) (- m 1) t))])))
 
 (define (findsubset p l)
-  (tryfind (λ (n) (findasubset (λ (x) (if (p x) x (error 'findsubset ""))) n l))
+  (tryfind (λ (n)
+             (findasubset (λ (x)
+                            (if (p x)
+                                x
+                                (error 'findsubset "")))
+                          n
+                          l))
            (range 0 (add1 (length l)))))
 
 (define (nelop-refute eqs ldseps)
@@ -167,7 +199,8 @@
   (define fms (homogenize langs fms0))
   (define seps (langpartition langs fms))
   (define fvlist (map (λ (sep) (unions (map fv sep))) seps))
-  (define vars (filter (λ (x) (>= (length (filter (λ (fl) (member x fl)) fvlist)) 2)) (unions fvlist)))
+  (define vars
+    (filter (λ (x) (>= (length (filter (λ (fl) (member x fl)) fvlist)) 2)) (unions fvlist)))
   (define eqs (map (λ (ab) (mk-eq `(var ,(car ab)) `(var ,(cdr ab)))) (distinctpairs vars)))
   (nelop-refute eqs (map cons langs seps)))
 

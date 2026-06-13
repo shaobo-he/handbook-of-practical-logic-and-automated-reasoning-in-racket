@@ -23,14 +23,20 @@
 (provide (all-defined-out))
 
 ;; ===== numerals (zero/successor form) =====
-(define (numeral n) (if (= n 0) `(fn |0|) `(fn S ,(numeral (- n 1)))))
+(define (numeral n)
+  (if (= n 0)
+      `(fn |0|)
+      `(fn S ,(numeral (- n 1)))))
 
 ;; ===== string -> number (bijective) =====
 (define (number s)
-  (foldr (λ (i g) (+ (+ 1 (char->integer (string-ref s i))) (* 256 g))) 0 (range 0 (string-length s))))
+  (foldr (λ (i g) (+ (+ 1 (char->integer (string-ref s i))) (* 256 g)))
+         0
+         (range 0 (string-length s))))
 
 ;; ===== injective pairing =====
-(define (pair x y) (+ (* (+ x y) (+ x y)) x 1))
+(define (pair x y)
+  (+ (* (+ x y) (+ x y)) x 1))
 
 ;; ===== Goedel numbering =====
 (define (gterm tm)
@@ -58,11 +64,14 @@
     [`(exists ,x ,p) (pair 10 (pair (number (symbol->string x)) (gform p)))]
     [_ (error 'gform "not in the language")]))
 
-(define (gnumeral n) (gterm (numeral n)))
+(define (gnumeral n)
+  (gterm (numeral n)))
 
 ;; ===== diagonalization =====
-(define (diag x p) (subst (update x (numeral (gform p)) undefined) p))
-(define (qdiag x p) `(exists ,x (and ,(mk-eq `(var ,x) (numeral (gform p))) ,p)))
+(define (diag x p)
+  (subst (update x (numeral (gform p)) undefined) p))
+(define (qdiag x p)
+  `(exists ,x (and ,(mk-eq `(var ,x) (numeral (gform p))) ,p)))
 
 ;; ===== decider for delta-sentences =====
 (define (dtermval v tm)
@@ -93,11 +102,17 @@
 (define (dhquant pred v x y a t p)
   (if (or (not (equal? x y)) (member x (fvt t)))
       (error 'dholds "not delta")
-      (let ([m (if (equal? a '<) (- (dtermval v t) 1) (dtermval v t))])
+      (let ([m (if (equal? a '<)
+                   (- (dtermval v t) 1)
+                   (dtermval v t))])
         (pred (λ (n) (dholds (update x n v) p)) (range 0 (add1 m))))))
 
 ;; ===== Sigma / Pi / Delta classification =====
-(define (opp c) (case c [(sigma) 'pi] [(pi) 'sigma] [(delta) 'delta]))
+(define (opp c)
+  (case c
+    [(sigma) 'pi]
+    [(pi) 'sigma]
+    [(delta) 'delta]))
 
 (define (classify c n fm)
   (match fm
@@ -108,12 +123,18 @@
     [`(or ,p ,q) (and (classify c n p) (classify c n q))]
     [`(imp ,p ,q) (and (classify (opp c) n p) (classify c n q))]
     [`(iff ,p ,q) (and (classify 'delta n p) (classify 'delta n q))]
-    [`(exists ,x ,p) #:when (and (not (= n 0)) (eq? c 'sigma)) (classify c n p)]
-    [`(forall ,x ,p) #:when (and (not (= n 0)) (eq? c 'pi)) (classify c n p)]
+    [`(exists ,x ,p)
+     #:when (and (not (= n 0)) (eq? c 'sigma))
+     (classify c n p)]
+    [`(forall ,x ,p)
+     #:when (and (not (= n 0)) (eq? c 'pi))
+     (classify c n p)]
     [`(exists ,x (and (atom (rel ,(or '< '<=) (var ,y) ,t)) ,p))
-     #:when (and (equal? x y) (not (member x (fvt t)))) (classify c n p)]
+     #:when (and (equal? x y) (not (member x (fvt t))))
+     (classify c n p)]
     [`(forall ,x (imp (atom (rel ,(or '< '<=) (var ,y) ,t)) ,p))
-     #:when (and (equal? x y) (not (member x (fvt t)))) (classify c n p)]
+     #:when (and (equal? x y) (not (member x (fvt t))))
+     (classify c n p)]
     [`(exists ,x ,p) (and (not (= n 0)) (classify (opp c) (- n 1) fm))]
     [`(forall ,x ,p) (and (not (= n 0)) (classify (opp c) (- n 1) fm))]))
 
@@ -130,28 +151,50 @@
     [`(or ,p ,q) (sign (or (sign (veref sign m v p)) (sign (veref sign m v q))))]
     [`(imp ,p ,q) (veref sign m v `(or (not ,p) ,q))]
     [`(iff ,p ,q) (veref sign m v `(and (imp ,p ,q) (imp ,q ,p)))]
-    [`(exists ,x ,p) #:when (sign #t) (ormap (λ (n) (veref sign m (update x n v) p)) (range 0 (add1 m)))]
-    [`(forall ,x ,p) #:when (sign #f) (ormap (λ (n) (veref sign m (update x n v) p)) (range 0 (add1 m)))]
-    [`(forall ,x (imp (atom (rel ,a (var ,y) ,t)) ,p)) #:when (sign #t) (verefboundquant m v x y a t sign p)]
-    [`(exists ,x (and (atom (rel ,a (var ,y) ,t)) ,p)) #:when (sign #f) (verefboundquant m v x y a t sign p)]))
+    [`(exists ,x ,p)
+     #:when (sign #t)
+     (ormap (λ (n) (veref sign m (update x n v) p)) (range 0 (add1 m)))]
+    [`(forall ,x ,p)
+     #:when (sign #f)
+     (ormap (λ (n) (veref sign m (update x n v) p)) (range 0 (add1 m)))]
+    [`(forall ,x (imp (atom (rel ,a (var ,y) ,t)) ,p))
+     #:when (sign #t)
+     (verefboundquant m v x y a t sign p)]
+    [`(exists ,x (and (atom (rel ,a (var ,y) ,t)) ,p))
+     #:when (sign #f)
+     (verefboundquant m v x y a t sign p)]))
 
 (define (verefboundquant m v x y a t sign p)
   (if (or (not (equal? x y)) (member x (fvt t)))
       (error 'veref "veref")
-      (let ([m2 (if (equal? a '<) (- (dtermval v t) 1) (dtermval v t))])
+      (let ([m2 (if (equal? a '<)
+                    (- (dtermval v t) 1)
+                    (dtermval v t))])
         (andmap (λ (n) (veref sign m2 (update x n v) p)) (range 0 (add1 m2))))))
 
-(define (sholds m v fm) (veref (λ (x) x) m v fm))
-(define (sigma-bound fm) (first 0 (λ (n) (sholds n undefined fm))))
+(define (sholds m v fm)
+  (veref (λ (x) x) m v fm))
+(define (sigma-bound fm)
+  (first 0 (λ (n) (sholds n undefined fm))))
 
 ;; ===== Turing machines =====
 ;; tape = (tape head fn) ; config = (config state tape) ; symbols 'blank/'one ;
 ;; directions 'left/'right/'stay ; program = hash (state . symbol) -> (char dir state')
-(define (look tp) (match-define (list 'tape r f) tp) (tryapplyd f r 'blank))
-(define (twrite s tp) (match-define (list 'tape r f) tp) (list 'tape r (update r s f)))
+(define (look tp)
+  (match-define (list 'tape r f) tp)
+  (tryapplyd f r 'blank))
+(define (twrite s tp)
+  (match-define (list 'tape r f) tp)
+  (list 'tape r (update r s f)))
 (define (move dir tp)
   (match-define (list 'tape r f) tp)
-  (list 'tape (+ r (cond [(eq? dir 'left) -1] [(eq? dir 'right) 1] [else 0])) f))
+  (list 'tape
+        (+ r
+           (cond
+             [(eq? dir 'left) -1]
+             [(eq? dir 'right) 1]
+             [else 0]))
+        f))
 
 (define (run prog cfg)
   (match-define (list 'config state tp) cfg)
@@ -162,12 +205,15 @@
       cfg))
 
 (define (input-tape args)
-  (define (writen n tp) (funpow n (λ (t) (move 'left (twrite 'one t))) (move 'left (twrite 'blank tp))))
+  (define (writen n tp)
+    (funpow n (λ (t) (move 'left (twrite 'one t))) (move 'left (twrite 'blank tp))))
   (foldr writen (list 'tape 0 undefined) args))
 
 (define (output-tape tp)
   (define tp* (move 'right tp))
-  (if (eq? (look tp*) 'blank) 0 (+ 1 (output-tape tp*))))
+  (if (eq? (look tp*) 'blank)
+      0
+      (+ 1 (output-tape tp*))))
 
 (define (exec prog args)
   (match-define (list 'config _ t) (run prog (list 'config 1 (input-tape args))))
@@ -175,14 +221,33 @@
 
 ;; ===== Robinson arithmetic axioms (as s-expressions) =====
 (define robinson
-  `(and (forall m (forall n (imp (atom (rel = (fn S (var m)) (fn S (var n)))) (atom (rel = (var m) (var n))))))
-   (and (forall n (iff (not (atom (rel = (var n) (fn |0|)))) (exists m (atom (rel = (var n) (fn S (var m)))))))
-   (and (forall n (atom (rel = (fn + (fn |0|) (var n)) (var n))))
-   (and (forall m (forall n (atom (rel = (fn + (fn S (var m)) (var n)) (fn S (fn + (var m) (var n)))))))
-   (and (forall n (atom (rel = (fn * (fn |0|) (var n)) (fn |0|))))
-   (and (forall m (forall n (atom (rel = (fn * (fn S (var m)) (var n)) (fn + (var n) (fn * (var m) (var n)))))))
-   (and (forall m (forall n (iff (atom (rel <= (var m) (var n))) (exists d (atom (rel = (fn + (var m) (var d)) (var n)))))))
-        (forall m (forall n (iff (atom (rel < (var m) (var n))) (atom (rel <= (fn S (var m)) (var n))))))))))))))
+  `(and
+    (forall
+     m
+     (forall n (imp (atom (rel = (fn S (var m)) (fn S (var n)))) (atom (rel = (var m) (var n))))))
+    (and
+     (forall n
+             (iff (not (atom (rel = (var n) (fn |0|))))
+                  (exists m (atom (rel = (var n) (fn S (var m)))))))
+     (and
+      (forall n (atom (rel = (fn + (fn |0|) (var n)) (var n))))
+      (and
+       (forall m
+               (forall n (atom (rel = (fn + (fn S (var m)) (var n)) (fn S (fn + (var m) (var n)))))))
+       (and (forall n (atom (rel = (fn * (fn |0|) (var n)) (fn |0|))))
+            (and (forall m
+                         (forall n
+                                 (atom (rel =
+                                            (fn * (fn S (var m)) (var n))
+                                            (fn + (var n) (fn * (var m) (var n)))))))
+                 (and (forall m
+                              (forall n
+                                      (iff (atom (rel <= (var m) (var n)))
+                                           (exists d (atom (rel = (fn + (var m) (var d)) (var n)))))))
+                      (forall m
+                              (forall n
+                                      (iff (atom (rel < (var m) (var n)))
+                                           (atom (rel <= (fn S (var m)) (var n))))))))))))))
 
 (define robinson-axioms (conjths robinson))
 (define suc-inj (list-ref robinson-axioms 0))
@@ -195,8 +260,10 @@
 (define lt-def (list-ref robinson-axioms 7))
 
 ;; ===== "right-handed" derived rules =====
-(define (right-spec t th) (imp-trans th (ispec t (consequent (concl th)))))
-(define (right-imp-trans th1 th2) (imp-unduplicate (imp-front 2 (imp-trans2 th1 (imp-swap th2)))))
+(define (right-spec t th)
+  (imp-trans th (ispec t (consequent (concl th)))))
+(define (right-imp-trans th1 th2)
+  (imp-unduplicate (imp-front 2 (imp-trans2 th1 (imp-swap th2)))))
 (define (right-sym th)
   (match-define (cons s t) (dest-eq (consequent (concl th))))
   (imp-trans th (eq-sym s t)))
@@ -209,7 +276,9 @@
 (define (robop tm)
   (match tm
     [`(fn ,op (fn |0|) ,t)
-     (if (equal? op '*) (right-spec t mul-0) (right-trans (right-spec t add-0) (robeval t)))]
+     (if (equal? op '*)
+         (right-spec t mul-0)
+         (right-trans (right-spec t add-0) (robeval t)))]
     [`(fn ,op (fn S ,u) ,t)
      (define th2 (foldr right-spec (if (equal? op '+) add-suc mul-suc) (list t u)))
      (right-trans th2 (robeval (rhs (consequent (concl th2)))))]))

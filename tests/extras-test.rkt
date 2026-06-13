@@ -1,7 +1,10 @@
 #lang racket/base
 
 (require rackunit)
-(require "../core/intro.rkt" "../prop/propexamples.rkt" "../prop/bdd.rkt" "../prop/stal.rkt")
+(require "../core/intro.rkt"
+         "../prop/propexamples.rkt"
+         "../prop/bdd.rkt"
+         "../prop/stal.rkt")
 (require (only-in "../prop/prop.rkt" tautology))
 (require (only-in "../prop/dp.rkt" dplltaut))
 
@@ -12,8 +15,8 @@
 (check-equal? (sprint-exp (parse-exp "x + 3 * y")) "<<x + 3 * y>>")
 
 ;; ===== propexamples: Ramsey =====
-(check-false (tautology (ramsey 3 3 5)))   ; R(3,3) > 5
-(check-true (dplltaut (ramsey 3 3 6)))     ; R(3,3) = 6
+(check-false (tautology (ramsey 3 3 5))) ; R(3,3) > 5
+(check-true (dplltaut (ramsey 3 3 6))) ; R(3,3) = 6
 
 ;; ===== propexamples: adders and primality (checked with BDDs) =====
 (check-true (bddtaut (mk-adder-test 2 1)))
@@ -21,8 +24,7 @@
 (check-false (bddtaut (prime 9)))
 
 ;; ===== BDD tautology agrees with the reference on small formulas =====
-(define peirce
-  '(imp (imp (imp (atom p) (atom q)) (atom p)) (atom p)))
+(define peirce '(imp (imp (imp (atom p) (atom q)) (atom p)) (atom p)))
 (check-true (bddtaut peirce))
 (check-false (bddtaut '(or (atom p) (atom q))))
 ;; ebddtaut exploits p <=> (q /\ r) as a shared definition

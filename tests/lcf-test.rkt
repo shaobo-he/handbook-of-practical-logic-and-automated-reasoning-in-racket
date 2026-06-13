@@ -1,7 +1,12 @@
 #lang racket/base
 
 (require rackunit)
-(require "../lcf/lcf.rkt" "../lcf/lcfprop.rkt" "../lcf/folderived.rkt" "../lcf/lcffol.rkt" "../lcf/tactics.rkt" "../lcf/limitations.rkt")
+(require "../lcf/lcf.rkt"
+         "../lcf/lcfprop.rkt"
+         "../lcf/folderived.rkt"
+         "../lcf/lcffol.rkt"
+         "../lcf/tactics.rkt"
+         "../lcf/limitations.rkt")
 (require (only-in "../core/formulas.rkt" consequent))
 (require (only-in "../equality/equal.rkt" rhs))
 
@@ -10,7 +15,7 @@
 (check-equal? (concl (lcftaut peirce)) peirce)
 (check-equal? (concl (lcftaut '(imp (atom (rel p)) (atom (rel p)))))
               '(imp (atom (rel p)) (atom (rel p))))
-(check-exn exn:fail? (λ () (lcftaut '(atom (rel p)))))   ; not a tautology
+(check-exn exn:fail? (λ () (lcftaut '(atom (rel p))))) ; not a tautology
 
 ;; ===== LCF first-order prover =====
 (define drinker '(exists x (forall y (imp (atom (rel P (var x))) (atom (rel P (var y)))))))
@@ -34,16 +39,19 @@
 ;; ===== delta-decider =====
 ;; forall x < 2. x * 0 = 0
 (check-true (dholds (hash)
-                    '(forall x (imp (atom (rel < (var x) (fn S (fn S (fn |0|)))))
-                                    (atom (rel = (fn * (var x) (fn |0|)) (fn |0|)))))))
+                    '(forall x
+                             (imp (atom (rel < (var x) (fn S (fn S (fn |0|)))))
+                                  (atom (rel = (fn * (var x) (fn |0|)) (fn |0|)))))))
 ;; exists x <= 2. x = 2
 (check-true (dholds (hash)
-                    '(exists x (and (atom (rel <= (var x) (fn S (fn S (fn |0|)))))
-                                    (atom (rel = (var x) (fn S (fn S (fn |0|)))))))))
+                    '(exists x
+                             (and (atom (rel <= (var x) (fn S (fn S (fn |0|)))))
+                                  (atom (rel = (var x) (fn S (fn S (fn |0|)))))))))
 ;; false: forall x < 2. x = 0
 (check-false (dholds (hash)
-                     '(forall x (imp (atom (rel < (var x) (fn S (fn S (fn |0|)))))
-                                     (atom (rel = (var x) (fn |0|)))))))
+                     '(forall x
+                              (imp (atom (rel < (var x) (fn S (fn S (fn |0|)))))
+                                   (atom (rel = (var x) (fn |0|)))))))
 
 ;; ===== Sigma/Pi/Delta classification =====
 (check-true (classify 'sigma 1 '(exists x (atom (rel = (var x) (fn |0|))))))

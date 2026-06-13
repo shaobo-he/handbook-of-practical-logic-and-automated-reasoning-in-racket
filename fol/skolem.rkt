@@ -52,8 +52,14 @@
 
 (define (pullq l r fm qf o x y p q)
   (define z (variant x (fv fm)))
-  (define p^ (if l (subst (update x `(var ,z) undefined) p) p))
-  (define q^ (if r (subst (update y `(var ,z) undefined) q) q))
+  (define p^
+    (if l
+        (subst (update x `(var ,z) undefined) p)
+        p))
+  (define q^
+    (if r
+        (subst (update y `(var ,z) undefined) q)
+        q))
   `(,qf ,z ,(pullquants `(,o ,p^ ,q^))))
 
 (define (prenex fm)

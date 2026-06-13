@@ -71,8 +71,7 @@
 
 ;; substitution in terms
 (define x≤y '(fn ≤ (var x) (var y)))
-(check-equal? (tsubst (hash 'x '(fn |1|)) x≤y)
-              '(fn ≤ (fn |1|) (var y)))
+(check-equal? (tsubst (hash 'x '(fn |1|)) x≤y) '(fn ≤ (fn |1|) (var y)))
 
 ;; substituion in formulas
 (check-equal? 'x (variant 'x '(z y)))

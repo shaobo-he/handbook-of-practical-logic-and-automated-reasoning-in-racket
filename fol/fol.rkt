@@ -110,4 +110,7 @@
 
 ;; map a term function over every argument of every atom
 (define (onformula f fm)
-  (onatoms (λ (a) (match a [`(rel ,p ,@args) `(atom (rel ,p ,@(map f args)))])) fm))
+  (onatoms (λ (a)
+             (match a
+               [`(rel ,p ,@args) `(atom (rel ,p ,@(map f args)))]))
+           fm))

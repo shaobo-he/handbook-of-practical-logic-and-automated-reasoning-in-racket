@@ -22,9 +22,7 @@
 (define (overlapl lr fm rfn)
   (match fm
     [`(atom (rel ,f ,@args))
-     (listcases (λ (t rf) (overlaps lr t rf))
-                (λ (i a) (rfn i `(atom (rel ,f ,@a))))
-                args '())]
+     (listcases (λ (t rf) (overlaps lr t rf)) (λ (i a) (rfn i `(atom (rel ,f ,@a)))) args '())]
     [`(not ,p) (overlapl lr p (λ (i p2) (rfn i `(not ,p2))))]
     [_ (error 'overlapl "not a literal")]))
 
@@ -36,14 +34,21 @@
   (foldr (λ (eq acc)
            (define pcl* (subtract pcl (list eq)))
            (define st (dest-eq eq))
-           (define l (car st)) (define r (cdr st))
-           (define (rfn i ocl*) (image (λ (lit) (subst i lit)) (append pcl* ocl*)))
+           (define l (car st))
+           (define r (cdr st))
+           (define (rfn i ocl*)
+             (image (λ (lit) (subst i lit)) (append pcl* ocl*)))
            (overlapc (cons l r) ocl rfn (overlapc (cons r l) ocl rfn acc)))
-         '() (filter is-eq pcl)))
+         '()
+         (filter is-eq pcl)))
 
 (define (para-clauses cls1 cls2)
-  (define cls1* (rename "x" cls1))
-  (define cls2* (rename "y" cls2))
+  (define cls1*
+    (rename "x"
+            cls1))
+  (define cls2*
+    (rename "y"
+            cls2))
   (append (paramodulate cls1* cls2*) (paramodulate cls2* cls1*)))
 
 ;; ===== resolution loop extended with paramodulation =====
@@ -51,7 +56,8 @@
   (match unused
     ['() (error 'paramodulation "No proof found")]
     [(cons cls ros)
-     (when (paramodulation-verbose) (printf "~a used; ~a unused.\n" (length used) (length unused)))
+     (when (paramodulation-verbose)
+       (printf "~a used; ~a unused.\n" (length used) (length unused)))
      (define used* (insert cls used))
      (define news
        (append (append* (mapfilter (λ (c) (resolve-clauses cls c)) used*))
@@ -61,8 +67,7 @@
          (paraloop used* (foldr (λ (n acc) (incorporate cls n acc)) ros news)))]))
 
 (define (pure-paramodulation fm)
-  (paraloop '() (cons (list (mk-eq '(var x) '(var x)))
-                      (simpcnf (specialize (pnf fm))))))
+  (paraloop '() (cons (list (mk-eq '(var x) '(var x))) (simpcnf (specialize (pnf fm))))))
 
 (define (paramodulation fm)
   (define fm1 (askolemize `(not ,(generalize fm))))

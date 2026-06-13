@@ -15,7 +15,8 @@
      `(fn ,(string->symbol (string-append "old_" (symbol->string f))) ,@(map rename-term args))]
     [_ tm]))
 
-(define (rename-form fm) (onformula rename-term fm))
+(define (rename-form fm)
+  (onformula rename-term fm))
 
 (define (skolems fms corr)
   (match fms
@@ -26,4 +27,5 @@
      (values (cons p* ps*) corr**)]))
 
 (define (skolemizes fms)
-  (let-values ([(r _) (skolems fms '())]) r))
+  (let-values ([(r _) (skolems fms '())])
+    r))

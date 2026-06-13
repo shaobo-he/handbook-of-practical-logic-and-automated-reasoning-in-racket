@@ -34,7 +34,8 @@
                   (w (cons f (length fargs)) (cons g (length gargs))))))]
     [(_ _) #f]))
 
-(define (lpo-ge w s t) (or (equal? s t) (lpo-gt w s t)))
+(define (lpo-ge w s t)
+  (or (equal? s t) (lpo-gt w s t)))
 
 ;; precedence given by position in a list (earlier = smaller)
 (define (weight lis fn1 fn2)

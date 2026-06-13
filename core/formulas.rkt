@@ -16,20 +16,40 @@
 (provide (all-defined-out))
 
 ;; ===== constructors =====
-(define (mk-and p q) `(and ,p ,q))
-(define (mk-or p q) `(or ,p ,q))
-(define (mk-imp p q) `(imp ,p ,q))
-(define (mk-iff p q) `(iff ,p ,q))
-(define (mk-forall x p) `(forall ,x ,p))
-(define (mk-exists x p) `(exists ,x ,p))
+(define (mk-and p q)
+  `(and ,p ,q))
+(define (mk-or p q)
+  `(or ,p ,q))
+(define (mk-imp p q)
+  `(imp ,p ,q))
+(define (mk-iff p q)
+  `(iff ,p ,q))
+(define (mk-forall x p)
+  `(forall ,x ,p))
+(define (mk-exists x p)
+  `(exists ,x ,p))
 
 ;; ===== destructors =====
-(define (dest-imp fm) (match fm [`(imp ,p ,q) (cons p q)] [_ (error 'dest-imp "dest_imp")]))
-(define (antecedent fm) (car (dest-imp fm)))
-(define (consequent fm) (cdr (dest-imp fm)))
-(define (dest-iff fm) (match fm [`(iff ,p ,q) (cons p q)] [_ (error 'dest-iff "dest_iff")]))
-(define (dest-and fm) (match fm [`(and ,p ,q) (cons p q)] [_ (error 'dest-and "dest_and")]))
-(define (dest-or fm) (match fm [`(or ,p ,q) (cons p q)] [_ (error 'dest-or "dest_or")]))
+(define (dest-imp fm)
+  (match fm
+    [`(imp ,p ,q) (cons p q)]
+    [_ (error 'dest-imp "dest_imp")]))
+(define (antecedent fm)
+  (car (dest-imp fm)))
+(define (consequent fm)
+  (cdr (dest-imp fm)))
+(define (dest-iff fm)
+  (match fm
+    [`(iff ,p ,q) (cons p q)]
+    [_ (error 'dest-iff "dest_iff")]))
+(define (dest-and fm)
+  (match fm
+    [`(and ,p ,q) (cons p q)]
+    [_ (error 'dest-and "dest_and")]))
+(define (dest-or fm)
+  (match fm
+    [`(or ,p ,q) (cons p q)]
+    [_ (error 'dest-or "dest_or")]))
 
 (define (conjuncts fm)
   (match fm
@@ -48,8 +68,14 @@
     [(null? (cdr l)) (car l)]
     [else (f (car l) (end-itlist f (cdr l)))]))
 
-(define (list-conj l) (if (null? l) #t (end-itlist mk-and l)))
-(define (list-disj l) (if (null? l) #f (end-itlist mk-or l)))
+(define (list-conj l)
+  (if (null? l)
+      #t
+      (end-itlist mk-and l)))
+(define (list-disj l)
+  (if (null? l)
+      #f
+      (end-itlist mk-or l)))
 
 ;; ===== mapping / folding over atoms =====
 (define (onatoms f fm)
@@ -79,13 +105,17 @@
   (match fm
     [(list (and Q (or 'forall 'exists)) x (and yp (list Q2 _ _)))
      #:when (eq? Q Q2)
-     (let-values ([(xs bod) (strip-quant yp)]) (values (cons x xs) bod))]
+     (let-values ([(xs bod) (strip-quant yp)])
+       (values (cons x xs) bod))]
     [(list (or 'forall 'exists) x p) (values (list x) p)]
     [_ (values '() fm)]))
 
 ;; pfn : (prec atom) -> string  (atom printer, receives surrounding precedence)
 (define (formula->string pfn fm)
-  (define (br b s) (if b (string-append "(" s ")") s))
+  (define (br b s)
+    (if b
+        (string-append "(" s ")")
+        s))
   (define (go pr fm)
     (match fm
       [#f "false"]
@@ -104,8 +134,11 @@
     (define-values (bvs bod) (strip-quant fm))
     (string-append name
                    (apply string-append (map (λ (v) (string-append " " (symbol->string v))) bvs))
-                   ". " (go 0 bod)))
+                   ". "
+                   (go 0 bod)))
   (go 0 fm))
 
-(define (print-formula pfn fm) (display (formula->string pfn fm)))
-(define (print-qformula pfn fm) (display (string-append "<<" (formula->string pfn fm) ">>")))
+(define (print-formula pfn fm)
+  (display (formula->string pfn fm)))
+(define (print-qformula pfn fm)
+  (display (string-append "<<" (formula->string pfn fm) ">>")))

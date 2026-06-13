@@ -32,8 +32,7 @@
     ['() acc]
     [(cons head tail)
      (define-values (pos neg) (partition positive head))
-     (tryfind (λ (pq) (unify-refute tail (unify-complements acc pq)))
-              (allpairs cons pos neg))]))
+     (tryfind (λ (pq) (unify-refute tail (unify-complements acc pq))) (allpairs cons pos neg))]))
 
 (define (prawitz-loop djs0 fvs djs n)
   (define l (length fvs))
@@ -50,7 +49,8 @@
   (cdr (prawitz-loop (simpdnf fm0) (fv fm0) (list '()) 0)))
 
 ;; number of ground instances: prawitz vs. first-order Davis-Putnam
-(define (compare-instances fm) (cons (prawitz fm) (davisputnam fm)))
+(define (compare-instances fm)
+  (cons (prawitz fm) (davisputnam fm)))
 
 ;; ===== analytic tableau, doing DNF incrementally =====
 ;; cont takes (env k); env is the current unifier, k the fresh-var counter
@@ -59,12 +59,9 @@
       (error 'tableau "no proof at this level")
       (match fms
         ['() (error 'tableau "tableau: no proof")]
-        [(cons `(and ,p ,q) unexp)
-         (tableau (cons p (cons q unexp)) lits n cont env k)]
+        [(cons `(and ,p ,q) unexp) (tableau (cons p (cons q unexp)) lits n cont env k)]
         [(cons `(or ,p ,q) unexp)
-         (tableau (cons p unexp) lits n
-                  (λ (env k) (tableau (cons q unexp) lits n cont env k))
-                  env k)]
+         (tableau (cons p unexp) lits n (λ (env k) (tableau (cons q unexp) lits n cont env k)) env k)]
         [(cons `(forall ,x ,p) unexp)
          (define y `(var ,(string->symbol (string-append "_" (number->string k)))))
          (define p* (subst (update x y undefined) p))
@@ -77,15 +74,21 @@
 
 (define (deepen f n)
   (with-handlers ([exn:fail? (λ (e) (deepen f (add1 n)))])
-    (when (deepen-verbose) (printf "Searching with depth limit ~a\n" n))
+    (when (deepen-verbose)
+      (printf "Searching with depth limit ~a\n" n))
     (f n)))
 
 (define (tabrefute fms)
-  (deepen (λ (n) (tableau fms '() n (λ (env k) env) undefined 0) n) 0))
+  (deepen (λ (n)
+            (tableau fms '() n (λ (env k) env) undefined 0)
+            n)
+          0))
 
 (define (tab fm)
   (define sfm (askolemize `(not ,(generalize fm))))
-  (if (equal? sfm #f) 0 (tabrefute (list sfm))))
+  (if (equal? sfm #f)
+      0
+      (tabrefute (list sfm))))
 
 ;; split into DNF disjuncts first; usually a big speedup
 (define (splittab fm)

@@ -7,9 +7,18 @@
 (require racket/match)
 (require (only-in racket/list partition))
 (require (only-in "../core/lib.rkt"
-                  union unions allpairs setify insert
-                  update undefined tryapplyl
-                  unequal equate equivalent canonize))
+                  union
+                  unions
+                  allpairs
+                  setify
+                  insert
+                  update
+                  undefined
+                  tryapplyl
+                  unequal
+                  equate
+                  equivalent
+                  canonize))
 (require (only-in "../prop/prop.rkt" positive negate simpdnf))
 (require (only-in "../fol/fol.rkt" generalize))
 (require (only-in "../fol/skolem.rkt" askolemize))
@@ -27,15 +36,16 @@
 (define (congruent eqv st)
   (match st
     [(cons `(fn ,f ,@a1) `(fn ,g ,@a2))
-     (and (equal? f g) (= (length a1) (length a2))
-          (andmap (λ (x y) (equivalent eqv x y)) a1 a2))]
+     (and (equal? f g) (= (length a1) (length a2)) (andmap (λ (x y) (equivalent eqv x y)) a1 a2))]
     [_ #f]))
 
 ;; ===== merge two terms, propagating congruence closure =====
 ;; state is (eqv . pfn) where pfn maps a term to its known predecessors
 (define (emerge st eqvpfn)
-  (define s (car st)) (define t (cdr st))
-  (define eqv (car eqvpfn)) (define pfn (cdr eqvpfn))
+  (define s (car st))
+  (define t (cdr st))
+  (define eqv (car eqvpfn))
+  (define pfn (cdr eqvpfn))
   (define s* (canonize eqv s))
   (define t* (canonize eqv t))
   (if (equal? s* t*)
@@ -47,14 +57,15 @@
         (define st* (canonize eqv* s*))
         (define pfn* (update st* (union sp tp) pfn))
         (foldr (λ (uv acc)
-                 (if (congruent (car acc) uv) (emerge uv acc) acc))
+                 (if (congruent (car acc) uv)
+                     (emerge uv acc)
+                     acc))
                (cons eqv* pfn*)
                (allpairs cons sp tp)))))
 
 (define (predecessors t pfn)
   (match t
-    [`(fn ,f ,@a)
-     (foldr (λ (s acc) (update s (insert t (tryapplyl acc s)) acc)) pfn (setify a))]
+    [`(fn ,f ,@a) (foldr (λ (s acc) (update s (insert t (tryapplyl acc s)) acc)) pfn (setify a))]
     [_ pfn]))
 
 (define (ccsatisfiable fms)

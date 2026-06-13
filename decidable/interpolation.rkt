@@ -22,7 +22,8 @@
 
 ;; ===== propositional interpolation =====
 (define (pinterpolate p q)
-  (define (orify a r) `(or ,(psubst (update a #f undefined) r) ,(psubst (update a #t undefined) r)))
+  (define (orify a r)
+    `(or ,(psubst (update a #f undefined) r) ,(psubst (update a #t undefined) r)))
   (psimplify (foldr orify p (subtract (atoms p) (atoms q)))))
 
 ;; ===== relation interpolation for universal closed formulas =====
@@ -33,8 +34,16 @@
   (define cntms (map (λ (c) `(fn ,(car c))) consts))
   (define tups (dp-refine-loop (simpcnf fm) cntms funcs fvs 0 '() '() '()))
   (define fmis (map (λ (tup) (subst (fpf fvs tup) fm)) tups))
-  (define ps (map (λ (f) (match f [`(and ,a ,b) a])) fmis))
-  (define qs (map (λ (f) (match f [`(and ,a ,b) b])) fmis))
+  (define ps
+    (map (λ (f)
+           (match f
+             [`(and ,a ,b) a]))
+         fmis))
+  (define qs
+    (map (λ (f)
+           (match f
+             [`(and ,a ,b) b]))
+         fmis))
   (pinterpolate (list-conj (setify ps)) (list-conj (setify qs))))
 
 ;; ===== topmost terms over a set of function symbols =====
@@ -47,7 +56,10 @@
          (foldr (λ (a acc) (union (toptermt fns a) acc)) '() args))]))
 
 (define (topterms fns fm)
-  (atom-union (λ (at) (match at [`(rel ,p ,@args) (foldr (λ (a acc) (union (toptermt fns a) acc)) '() args)])) fm))
+  (atom-union (λ (at)
+                (match at
+                  [`(rel ,p ,@args) (foldr (λ (a acc) (union (toptermt fns a) acc)) '() args)]))
+              fm))
 
 ;; ===== interpolation for arbitrary universal formulas =====
 (define (uinterpolate p q)
@@ -59,7 +71,10 @@
       [(cons (and tm `(fn ,f ,@args)) otms)
        (define v (string->symbol (string-append "v_" (number->string n))))
        (define c* (replace (update tm `(var ,v) undefined) c))
-       (define c** (if (member (cons f (length args)) fp) `(exists ,v ,c*) `(forall ,v ,c*)))
+       (define c**
+         (if (member (cons f (length args)) fp)
+             `(exists ,v ,c*)
+             `(forall ,v ,c*)))
        (simpinter otms (+ n 1) c**)]))
   (define c (urinterpolate p q))
   (define tts (topterms (union (subtract fp fq) (subtract fq fp)) c))
@@ -72,14 +87,17 @@
   (define efm (foldr mk-exists fm (fv fm)))
   (define fns (map car (functions fm)))
   (define-values (sk _) (skolem efm fns))
-  (match sk [`(and ,p* ,q*) (uinterpolate p* q*)]))
+  (match sk
+    [`(and ,p* ,q*) (uinterpolate p* q*)]))
 
 ;; ===== fully general formulas =====
 (define (interpolate p q)
   (define vs (map (λ (v) `(var ,v)) (intersect (fv p) (fv q))))
   (define fns (functions `(and ,p ,q)))
   (define n (+ 1 (foldr (λ (f acc) (max acc (var-index "c_" (car f)))) 0 fns)))
-  (define cs (map (λ (i) `(fn ,(string->symbol (string-append "c_" (number->string i))))) (range n (+ n (length vs)))))
+  (define cs
+    (map (λ (i) `(fn ,(string->symbol (string-append "c_" (number->string i)))))
+         (range n (+ n (length vs)))))
   (define fn-vc (fpf vs cs))
   (define fn-cv (fpf cs vs))
   (replace fn-cv (cinterpolate (replace fn-vc p) (replace fn-vc q))))
@@ -88,6 +106,12 @@
 (define (einterpolate p q)
   (define p* (equalitize p))
   (define q* (equalitize q))
-  (define p** (if (equal? p* p) p `(and ,(car (dest-imp p*)) ,p)))
-  (define q** (if (equal? q* q) q `(and ,(car (dest-imp q*)) ,q)))
+  (define p**
+    (if (equal? p* p)
+        p
+        `(and ,(car (dest-imp p*)) ,p)))
+  (define q**
+    (if (equal? q* q)
+        q
+        `(and ,(car (dest-imp q*)) ,q)))
   (interpolate p** q**))

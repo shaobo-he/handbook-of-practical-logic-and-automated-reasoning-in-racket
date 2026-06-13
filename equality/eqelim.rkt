@@ -23,7 +23,8 @@
 (define (modify-S cl)
   (with-handlers ([exn:fail? (λ (e) (list cl))])
     (define st (tryfind dest-eq cl))
-    (define s (car st)) (define t (cdr st))
+    (define s (car st))
+    (define t (cdr st))
     (define eq1 (mk-eq s t))
     (define eq2 (mk-eq t s))
     (define sub (modify-S (subtract cl (list eq1))))
@@ -40,7 +41,10 @@
     [(cons p ps) (cons p (modify-T ps))]))
 
 ;; ===== E modification (abstract non-variable subterms) =====
-(define (is-nonvar tm) (match tm [`(var ,x) #f] [_ #t]))
+(define (is-nonvar tm)
+  (match tm
+    [`(var ,x) #f]
+    [_ #t]))
 
 (define (find-nestnonvar tm)
   (match tm
@@ -54,14 +58,14 @@
     [`(not ,p) (find-nvsubterm p)]))
 
 (define (replacet rfn tm)
-  (with-handlers ([exn:fail?
-                   (λ (e)
-                     (match tm
-                       [`(fn ,f ,@args) `(fn ,f ,@(map (λ (a) (replacet rfn a)) args))]
-                       [_ tm]))])
+  (with-handlers ([exn:fail? (λ (e)
+                               (match tm
+                                 [`(fn ,f ,@args) `(fn ,f ,@(map (λ (a) (replacet rfn a)) args))]
+                                 [_ tm]))])
     (apply rfn tm)))
 
-(define (replace rfn fm) (onformula (λ (t) (replacet rfn t)) fm))
+(define (replace rfn fm)
+  (onformula (λ (t) (replacet rfn t)) fm))
 
 (define (emodify fvs cls)
   (with-handlers ([exn:fail? (λ (e) cls)])
@@ -70,7 +74,8 @@
     (define cls* (map (λ (c) (replace (update t `(var ,w) undefined) c)) cls))
     (emodify (cons w fvs) (cons `(not ,(mk-eq t `(var ,w))) cls*))))
 
-(define (modify-E cls) (emodify (foldr (λ (c acc) (union (fv c) acc)) '() cls) cls))
+(define (modify-E cls)
+  (emodify (foldr (λ (c acc) (union (fv c) acc)) '() cls) cls))
 
 ;; ===== overall Brand transformation =====
 (define (brand cls)
@@ -82,11 +87,15 @@
 (define (bpuremeson fm)
   (define cls (brand (simpcnf (specialize (pnf fm)))))
   (define rules (foldr (λ (c acc) (append (contrapositives c) acc)) '() cls))
-  (deepen (λ (n) (mexpand002 rules '() #f (λ (env n k) env) undefined n 0) n) 0))
+  (deepen (λ (n)
+            (mexpand002 rules '() #f (λ (env n k) env) undefined n 0)
+            n)
+          0))
 
 (define (bmeson fm)
   (define fm1 (askolemize `(not ,(generalize fm))))
   (map (λ (d) (bpuremeson (list-conj d))) (simpdnf fm1)))
 
 ;; equality via explicit axioms then ordinary MESON
-(define (emeson fm) (meson002 (equalitize fm)))
+(define (emeson fm)
+  (meson002 (equalitize fm)))

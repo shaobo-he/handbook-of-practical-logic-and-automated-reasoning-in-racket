@@ -16,8 +16,7 @@
 
 (define (eq-sym s t)
   (define rth (axiom-eqrefl s))
-  (funpow 2 (λ (th) (modusponens (imp-swap th) rth))
-          (axiom-predcong '= (list s s) (list t s))))
+  (funpow 2 (λ (th) (modusponens (imp-swap th) rth)) (axiom-predcong '= (list s s) (list t s))))
 
 (define (eq-trans s t u)
   (define th1 (axiom-predcong '= (list t u) (list s u)))
@@ -30,7 +29,8 @@
     [(and (equal? stm s) (equal? ttm t)) (imp-refl (mk-eq s t))]
     [else
      (match* (stm ttm)
-       [(`(fn ,fs ,@sa) `(fn ,ft ,@ta)) #:when (and (equal? fs ft) (= (length sa) (length ta)))
+       [(`(fn ,fs ,@sa) `(fn ,ft ,@ta))
+        #:when (and (equal? fs ft) (= (length sa) (length ta)))
         (define ths (map (λ (a b) (icongruence s t a b)) sa ta))
         (define ts (map (λ (th) (consequent (concl th))) ths))
         (imp-trans-chain ths (axiom-funcong fs (map lhs ts) (map rhs ts)))]
@@ -124,4 +124,5 @@
          (subspec (isubst `(var ,x) t p (subst (update x t undefined) p))))]
     [_ (error 'ispec "non-universal formula")]))
 
-(define (spec t th) (modusponens (ispec t (concl th)) th))
+(define (spec t th)
+  (modusponens (ispec t (concl th)) th))
