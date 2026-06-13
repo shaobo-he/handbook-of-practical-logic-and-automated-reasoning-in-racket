@@ -15,7 +15,24 @@ formula ::= #t | #f | (atom a)
           | (forall x p) | (exists x p)
 ```
 
+## Layout
+
+```
+core/        lib formulas intro
+prop/        prop propexamples defcnf dp stal bdd
+fol/         fol skolem herbrand unif tableaux resolution prolog meson skolems
+equality/    equal cong rewrite order completion eqelim paramodulation
+decidable/   decidable qelim cooper complex real grobner geom interpolation combining
+lcf/         lcf lcfprop folderived lcffol tactics limitations
+tests/       one <name>-test.rkt per group
+```
+
+Modules in the same directory `require` each other by bare name; cross-directory
+requires use `../dir/name.rkt`.
+
 ## Modules (vs. the book)
+
+The `File` column gives the path under the directory shown in the layout above.
 
 | File          | Book module     | Status |
 |---------------|-----------------|--------|
@@ -63,7 +80,7 @@ formula ::= #t | #f | (atom a)
 Substitutions / finite partial functions are immutable hashes from variable
 name to term.
 
-Tests (run `racket <file>-test.rkt`): `prop`, `fol`, `dp`, `unif`, `herbrand`,
+Tests (run `racket tests/<file>-test.rkt`): `prop`, `fol`, `dp`, `unif`, `herbrand`,
 `provers` (tableaux/resolution/prolog/meson), `equality` (equal/cong/rewrite/order),
 `completion` (completion/eqelim/paramodulation/skolems),
 `extras` (intro/propexamples/stal/bdd), `decidable` (decidable/qelim/cooper/
