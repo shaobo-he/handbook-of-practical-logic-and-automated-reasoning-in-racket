@@ -100,15 +100,23 @@
       ['and v1]
       ['or v2]
       ['iff v3]))
+  ;; negate, collapsing a negated constant (so no (not #t)/(not #f) leaks into
+  ;; defcnf/dp) and a double negation (so psimplify reaches a fixpoint)
+  (define (neg p)
+    (cond
+      [(eq? p #t) #f]
+      [(eq? p #f) #t]
+      [(and (pair? p) (eq? (car p) 'not)) (cadr p)]
+      [else `(not ,p)]))
   (match fm
     ['(not #f) #t]
     ['(not #t) #f]
     [`(not (not ,p)) p]
-    [`(,(and o (or 'and 'or 'iff)) . ,(or (list p #f) (list #f p))) (v o #f p `(not ,p))]
+    [`(,(and o (or 'and 'or 'iff)) . ,(or (list p #f) (list #f p))) (v o #f p (neg p))]
     [`(,(and o (or 'and 'or 'iff)) . ,(or (list p #t) (list #t p))) (v o p #t p)]
     [`(imp . ,(or (list #f p) (list p #t))) #t]
     [`(imp #t ,p) p]
-    [`(imp ,p #f) `(not ,p)]
+    [`(imp ,p #f) (neg p)]
     [_ fm]))
 
 (define (psimplify fm)

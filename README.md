@@ -88,9 +88,41 @@ Tests (run `racket tests/<file>-test.rkt`): `prop`, `fol`, `dp`, `unif`, `herbra
 `extras` (intro/propexamples/stal/bdd), `decidable` (decidable/qelim/cooper/
 complex/real/grobner), `chapter5b` (geom/interpolation/combining),
 `lcf` (lcf/lcfprop/folderived/lcffol/tactics/limitations),
-`pelletier` (a selection of Pelletier's problems run through the provers).
+`pelletier` (a selection of Pelletier's problems run through the provers),
+`property` (property-based tests — see below).
 
-Run the whole suite with `raco test tests/` (399 checks).
+Run the whole suite with `raco test tests/` (508 checks).
+
+`tests/property-test.rkt` uses [rackcheck](https://docs.racket-lang.org/rackcheck/)
+for property-based testing — ~110 properties (most run 1500 random cases) spanning
+every chapter, checking each function against a trusted oracle or its defining law:
+
+- **lib/formulas/intro** — set/union-find axioms (commutativity, associativity,
+  absorption, transitivity), finite-partial-function laws, constructor/destructor
+  round-trips, and that the expression simplifier and parse∘print preserve value.
+- **propositional/SAT** — every tautology checker (`tautology`/`bddtaut`/`ebddtaut`/
+  `dptaut`/`dplltaut`/`dplbtaut`) and satisfiability checker agree with the
+  truth-table oracle; NNF/NENF/DNF/CNF/`psimplify` preserve meaning; `eval` is a
+  homomorphism; `dual` is involutive; Stålmarck is sound; `prime`/`ramsey`/adders
+  match `prime?`, R(3,3)=6, and validity.
+- **BDD** — canonicity (equal nodes ⟺ logical equivalence), the diagram evaluates
+  to the truth table, complement-edge negation, and the `bdd-and/or/imp/iff`
+  combinators match formula construction.
+- **first-order** — `simplify`/`nnf`/`prenex`/`pnf` preserve truth in random finite
+  models; unification is sound, symmetric, and idempotent; MESON/tableaux prove
+  every propositional tautology.
+- **equality/ordering** — LPO is a strict order with the subterm property; rewriting
+  computes the right number; congruence closure decides ground equational validity.
+- **decidable theories** — the `complex`/`grobner`/`real` polynomial rings satisfy
+  the ring/derivative laws (commutativity, distributivity, product rule); QE
+  decides ground (in)equalities; DLO QE eliminates all quantifiers; `grobner-decide`
+  confirms field congruences.
+- **LCF/limitations** — kernel-derived rules produce the expected theorems;
+  `lcftaut` succeeds exactly on tautologies; `robeval`/`dholds`/`dtermval` agree
+  with native arithmetic; Gödel numbering is injective; the Turing tape round-trips.
+
+It needs the extra `rackcheck` package (`raco pkg install rackcheck`) and is run
+locally only — CI runs every suite except this one.
 
 ## Status
 

@@ -15,8 +15,8 @@ jobs:
         with:
           version: stable
           distribution: full
-      - name: Run test suite
-        run: raco test tests/
+      - name: Run test suite (excludes the rackcheck property suite)
+        run: raco test $(find tests -name '*-test.rkt' ! -name 'property-test.rkt')
 
   format:
     name: Format check
