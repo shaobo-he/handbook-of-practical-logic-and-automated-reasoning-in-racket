@@ -14,7 +14,7 @@
 (check-equal? (dest-iff '(iff a b)) '(a . b))
 (check-equal? (dest-and '(and a b)) '(a . b))
 (check-equal? (dest-or '(or a b)) '(a . b))
-(check-exn exn:fail? (lambda () (dest-imp '(and a b))))
+(check-exn exn:fail? (λ () (dest-imp '(and a b))))
 
 ;; ===== conjuncts / disjuncts / list-conj / list-disj / end-itlist =====
 (check-equal? (conjuncts '(and a (and b c))) '(a b c))
@@ -29,11 +29,10 @@
 (check-equal? (end-itlist - '(1 2 3)) 2) ; 1 - (2 - 3)
 
 ;; ===== atom traversal =====
-(check-equal? (onatoms (lambda (a) `(atom (renamed ,a))) '(and (atom p) (not (atom q))))
+(check-equal? (onatoms (λ (a) `(atom (renamed ,a))) '(and (atom p) (not (atom q))))
               '(and (atom (renamed p)) (not (atom (renamed q)))))
-(check-equal? (overatoms (lambda (a acc) (cons a acc)) '(and (atom p) (atom q)) '()) '(p q))
-(check-equal? (sort (atom-union (lambda (a) (list a)) '(and (atom p) (or (atom q) (atom p))))
-                    symbol<?)
+(check-equal? (overatoms (λ (a acc) (cons a acc)) '(and (atom p) (atom q)) '()) '(p q))
+(check-equal? (sort (atom-union (λ (a) (list a)) '(and (atom p) (or (atom q) (atom p)))) symbol<?)
               '(p q))
 
 ;; ===== printer (custom atom printer; exercises precedence + strip-quant) =====

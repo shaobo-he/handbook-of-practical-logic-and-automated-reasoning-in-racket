@@ -31,7 +31,7 @@
  big
  (property ([p gen:prop] [q gen:prop] [b1 gen:boolean] [b2 gen:boolean] [b3 gen:boolean])
            (define v
-             (lambda (s)
+             (λ (s)
                (case s
                  [(p) b1]
                  [(q) b2]
@@ -62,7 +62,7 @@
 (check-property mid
                 (property ([fm gen:prop])
                           (define r
-                            (with-handlers ([exn:fail? (lambda (e) 'unknown)])
+                            (with-handlers ([exn:fail? (λ (e) 'unknown)])
                               (stalmarck fm)))
                           (or (eq? r 'unknown) (eq? r (tautology fm)))))
 ;; normal forms preserve meaning
@@ -87,7 +87,7 @@
   (if (<= n 0)
       (gen:one-of '((atom p) (atom q) (atom r)))
       (gen:frequency (list (cons 1 (gen:one-of '((atom p) (atom q) (atom r))))
-                           (cons 2 (gen:map (aoi-gen (sub1 n)) (lambda (p) `(not ,p))))
+                           (cons 2 (gen:map (aoi-gen (sub1 n)) (λ (p) `(not ,p))))
                            (cons 3 (binop-gen '(and or) aoi-gen n))))))
 (check-property big (property ([fm (aoi-gen 4)]) (equal? (dual (dual fm)) fm)))
 ;; propexamples against oracles

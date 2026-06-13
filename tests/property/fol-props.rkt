@@ -25,7 +25,7 @@
 (define (nofunc f args)
   (error "no function symbols"))
 (define (mk-pred p0 p1 q0 q1)
-  (lambda (psym args)
+  (λ (psym args)
     (define d (car args))
     (cond
       [(eq? psym 'P) (if (= d 0) p0 p1)]
@@ -36,7 +36,7 @@
   (if (<= n 0)
       (gen:one-of as)
       (gen:frequency (list (cons 1 (gen:one-of as))
-                           (cons 2 (gen:map (fol-gen (sub1 n)) (lambda (p) `(not ,p))))
+                           (cons 2 (gen:map (fol-gen (sub1 n)) (λ (p) `(not ,p))))
                            (cons 3 (binop-gen '(and or imp iff) fol-gen n))
                            (cons 2 (quant-gen '(forall exists) '(x y) fol-gen n))))))
 (check-property
@@ -61,13 +61,13 @@
 
 ;; unification: soundness, symmetry, idempotence of the solved form
 (define (unifiable? s t)
-  (with-handlers ([exn:fail? (lambda (e) #f)])
+  (with-handlers ([exn:fail? (λ (e) #f)])
     (fullunify (list (cons s t)))
     #t))
 (check-property mid
                 (property ([s gen:term] [t gen:term])
-                          (with-handlers ([exn:fail? (lambda (e) #t)])
-                            (andmap (lambda (e) (equal? (car e) (cdr e)))
+                          (with-handlers ([exn:fail? (λ (e) #t)])
+                            (andmap (λ (e) (equal? (car e) (cdr e)))
                                     (unify-and-apply (list (cons s t)))))))
 (check-property mid (property ([s gen:term] [t gen:term]) (eq? (unifiable? s t) (unifiable? t s))))
 (check-property mid

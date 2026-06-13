@@ -17,10 +17,10 @@
   (if (<= n 0)
       (gen:one-of '((fn a) (fn b) (fn c)))
       (gen:frequency (list (cons 1 (gen:one-of '((fn a) (fn b) (fn c))))
-                           (cons 2 (gen:map (gterm-gen (sub1 n)) (lambda (t) `(fn f ,t))))
+                           (cons 2 (gen:map (gterm-gen (sub1 n)) (λ (t) `(fn f ,t))))
                            (cons 2
                                  (gen:map (gen:tuple (gterm-gen (sub1 n)) (gterm-gen (sub1 n)))
-                                          (lambda (st) `(fn g ,(car st) ,(cadr st)))))))))
+                                          (λ (st) `(fn g ,(car st) ,(cadr st)))))))))
 (define gen:gterm (gterm-gen 3))
 
 ;; equation accessors and congruence axioms
@@ -44,7 +44,7 @@
                           (= (termsize `(fn g ,a ,b)) (+ 1 (termsize a) (termsize b)))))
 
 ;; the lexicographic path order is a strict order with the subterm property
-(define ord (lambda (p q) (weight '(a b c f g) p q)))
+(define ord (λ (p q) (weight '(a b c f g) p q)))
 (check-property big (property ([t gen:term]) (not (lpo-gt ord t t))))
 (check-property big
                 (property ([s gen:term] [t gen:term]) (not (and (lpo-gt ord s t) (lpo-gt ord t s)))))

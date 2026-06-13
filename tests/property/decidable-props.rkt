@@ -31,13 +31,13 @@
                            (cons 1 (gen:map (gen:integer-in 0 4) cnum))
                            (cons 3
                                  (gen:bind (gen:one-of '(+ - *))
-                                           (lambda (op)
+                                           (λ (op)
                                              (gen:map (gen:tuple (poly-term-gen (sub1 n))
                                                                  (poly-term-gen (sub1 n)))
-                                                      (lambda (ab) `(fn ,op ,(car ab) ,(cadr ab)))))))
+                                                      (λ (ab) `(fn ,op ,(car ab) ,(cadr ab)))))))
                            (cons 1
                                  (gen:map (gen:tuple (poly-term-gen (sub1 n)) (gen:integer-in 0 3))
-                                          (lambda (te) `(fn ^ ,(car te) ,(cnum (cadr te))))))))))
+                                          (λ (te) `(fn ^ ,(car te) ,(cnum (cadr te))))))))))
 (define pv '(x y))
 (define zero-poly (polynate pv '(fn |0|)))
 (define zero-mpoly (mpolynate pv '(fn |0|)))
@@ -94,9 +94,9 @@
   (if (<= n 0)
       (gen:map (gen:integer-in 0 4) cnum)
       (gen:bind (gen:one-of '(+ - *))
-                (lambda (op)
+                (λ (op)
                   (gen:map (gen:tuple (cterm-gen (sub1 n)) (cterm-gen (sub1 n)))
-                           (lambda (ab) `(fn ,op ,(car ab) ,(cadr ab))))))))
+                           (λ (ab) `(fn ,op ,(car ab) ,(cadr ab))))))))
 (define (cterm-value t)
   (match t
     [`(fn + ,a ,b) (+ (cterm-value a) (cterm-value b))]
@@ -139,7 +139,7 @@
   (if (<= n 0)
       (gen:one-of as)
       (gen:frequency (list (cons 1 (gen:one-of as))
-                           (cons 2 (gen:map (dlo-gen (sub1 n)) (lambda (p) `(not ,p))))
+                           (cons 2 (gen:map (dlo-gen (sub1 n)) (λ (p) `(not ,p))))
                            (cons 3 (binop-gen '(and or imp) dlo-gen n))
                            (cons 2 (quant-gen '(forall exists) '(x y z) dlo-gen n))))))
 (check-property mid (property ([fm (dlo-gen 3)]) (qfree? (quelim-dlo fm))))

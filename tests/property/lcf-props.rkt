@@ -40,7 +40,7 @@
 (check-property low
                 (property ([fm gen:prop-nc])
                           (define r
-                            (with-handlers ([exn:fail? (lambda (e) 'fail)])
+                            (with-handlers ([exn:fail? (λ (e) 'fail)])
                               (lcftaut fm)))
                           (if (eq? r 'fail)
                               (not (tautology fm))

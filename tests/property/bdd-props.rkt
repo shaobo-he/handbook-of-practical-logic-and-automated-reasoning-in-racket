@@ -33,7 +33,7 @@
 (check-property mid
                 (property ([fm gen:prop] [b1 gen:boolean] [b2 gen:boolean] [b3 gen:boolean])
                           (define v
-                            (lambda (s)
+                            (λ (s)
                               (case s
                                 [(p) b1]
                                 [(q) b2]

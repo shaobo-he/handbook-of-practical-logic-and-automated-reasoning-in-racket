@@ -58,7 +58,7 @@
                           (or (not (subset a b)) (not (subset b c)) (subset a c))))
 (check-property big
                 (property ([a gen:natlist] [b gen:natlist]) ; agrees with native sets
-                          (eq? (and (subset a b) #t) (andmap (lambda (x) (and (member x b) #t)) a))))
+                          (eq? (and (subset a b) #t) (andmap (λ (x) (and (member x b) #t)) a))))
 (check-property big (property ([a gen:natlist]) (not (psubset a a))))
 (check-property big
                 (property ([a gen:natlist] [b gen:natlist]) (not (and (psubset a b) (psubset b a)))))
@@ -75,7 +75,7 @@
 (check-property big (property ([a gen:natlist]) (= (length (allsubsets a)) (expt 2 (length a)))))
 (check-property big
                 (property ([a gen:natlist] [k gen:nat])
-                          (<= (length (image (lambda (x) (modulo x 3)) a)) (length a))))
+                          (<= (length (image (λ (x) (modulo x 3)) a)) (length a))))
 (check-property big
                 (property ([k gen:nat] [m (gen:integer-in 0 5)]
                                        [n (gen:integer-in 0 5)]) ; funpow additivity
@@ -95,7 +95,7 @@
 (check-property big
                 (property ([ks gen:natlist])
                           (let ([d (setify ks)])
-                            (andmap (lambda (kv) (= (apply (fpf d d) (car kv)) (cdr kv)))
+                            (andmap (λ (kv) (= (apply (fpf d d) (car kv)) (cdr kv)))
                                     (graph (fpf d d))))))
 (check-property big
                 (property ([ks gen:natlist] [k gen:nat])

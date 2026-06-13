@@ -10,12 +10,12 @@
 
 (define (expr-gen n)
   (if (<= n 0)
-      (gen:choice (gen:map (gen:integer-in 0 5) (lambda (k) `(const ,k)))
+      (gen:choice (gen:map (gen:integer-in 0 5) (λ (k) `(const ,k)))
                   (gen:one-of '((var "x") (var "y"))))
       (gen:bind (gen:one-of '(add mul))
-                (lambda (op)
+                (λ (op)
                   (gen:map (gen:tuple (expr-gen (sub1 n)) (expr-gen (sub1 n)))
-                           (lambda (ab) `(,op ,(car ab) ,(cadr ab))))))))
+                           (λ (ab) `(,op ,(car ab) ,(cadr ab))))))))
 (define (eval-expr e env)
   (match e
     [`(var ,s) (hash-ref env s)]
