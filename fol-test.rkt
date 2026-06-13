@@ -4,7 +4,8 @@
 (require racket/match)
 (require (only-in racket/list range))
 (require (only-in math/number-theory prime?))
-(require "fol-untyped.rkt")
+(require "fol.rkt")
+(require "skolem.rkt")
 
 ;; domain, func, pred for Boolean and modulo n
 (define b-domain '(#t #f))
@@ -70,19 +71,14 @@
 
 ;; substitution in terms
 (define x≤y '(fn ≤ (var x) (var y)))
-(check-equal? (tsubst (λ (x)
-                        (match x
-                          ['x '(fn |1|)]))
-                      x≤y)
+(check-equal? (tsubst (hash 'x '(fn |1|)) x≤y)
               '(fn ≤ (fn |1|) (var y)))
 
 ;; substituion in formulas
 (check-equal? 'x (variant 'x '(z y)))
 (check-equal? 'x^ (variant 'x '(x y)))
 (check-equal? 'x^^ (variant 'x '(x x^)))
-(define (sfn k)
-  (match k
-    ['y '(var x)]))
+(define sfn (hash 'y '(var x)))
 (define qx=y '(forall x (atom (rel = (var x) (var y)))))
 (check-equal? (subst sfn qx=y) '(forall x^ (atom (rel = (var x^) (var x)))))
 (define qxx^y
