@@ -9,15 +9,22 @@
          racket/match
          "common.rkt")
 (require (only-in math/number-theory prime?))
+(require racket/list)
 (require (only-in "../../prop/prop.rkt"
                   eval
                   atoms
+                  onallvaluations
+                  allsatvaluations
                   tautology
                   satisfiable
                   unsatisfiable
                   psimplify
+                  psubst
                   nnf
                   nenf
+                  negate
+                  trivial
+                  rawdnf
                   dual
                   dnf
                   cnf))
@@ -90,6 +97,98 @@
                            (cons 2 (gen:map (aoi-gen (sub1 n)) (λ (p) `(not ,p))))
                            (cons 3 (binop-gen '(and or) aoi-gen n))))))
 (check-property big (property ([fm (aoi-gen 4)]) (equal? (dual (dual fm)) fm)))
+;; ===== onallvaluations / allsatvaluations against an independent row count =====
+;; reference row enumerator: count / collect satisfying valuations directly,
+;; without going through onallvaluations or allsatvaluations
+(define (count-sat-rows fm)
+  (let loop ([ats (atoms fm)]
+             [v (λ (s) #f)])
+    (match ats
+      ['() (if (eval fm v) 1 0)]
+      [(cons a rest)
+       (+ (loop rest
+                (λ (s)
+                  (if (equal? s a)
+                      #f
+                      (v s))))
+          (loop rest
+                (λ (s)
+                  (if (equal? s a)
+                      #t
+                      (v s)))))])))
+;; folding (eval fm) over all valuations is exactly the tautology verdict
+(check-property big
+                (property ([fm gen:prop])
+                          (eq? (onallvaluations (λ (v) (eval fm v)) (λ (s) #f) (atoms fm))
+                               (tautology fm))))
+;; allsatvaluations returns precisely the satisfying rows (count matches)
+(check-property mid
+                (property ([fm gen:prop])
+                          (= (length (allsatvaluations (λ (v) (eval fm v)) (λ (s) #f) (atoms fm)))
+                             (count-sat-rows fm))))
+;; and each returned valuation genuinely satisfies the formula; the set is
+;; non-empty exactly when the formula is satisfiable
+(check-property mid
+                (property ([fm gen:prop])
+                          (define vs (allsatvaluations (λ (v) (eval fm v)) (λ (s) #f) (atoms fm)))
+                          (and (andmap (λ (v) (eval fm v)) vs) (eq? (satisfiable fm) (pair? vs)))))
+
+;; ===== atoms is exactly the deduplicated set of atom symbols =====
+(define (ref-atoms fm)
+  (match fm
+    [(or #t #f) '()]
+    [`(atom ,a) (list a)]
+    [`(not ,p) (ref-atoms p)]
+    [`(,(or 'and 'or 'imp 'iff) ,p ,q) (append (ref-atoms p) (ref-atoms q))]))
+(check-property big
+                (property ([fm gen:prop])
+                          (and (equal? (sort (atoms fm) symbol<?)
+                                       (sort (remove-duplicates (ref-atoms fm)) symbol<?))
+                               ;; no duplicates in the returned set
+                               (= (length (atoms fm)) (length (remove-duplicates (atoms fm)))))))
+
+;; ===== psubst realises simultaneous substitution (single pass) =====
+;; eval(psubst(s,fm),v) = eval(fm, v') where v' rebinds the substituted atoms to
+;; the value of their replacement formula under v, and leaves the rest as v
+(check-property
+ mid
+ (property
+  ([fm gen:prop] [rp gen:prop] [rr gen:prop] [b1 gen:boolean] [b2 gen:boolean] [b3 gen:boolean])
+  (define sigma (hash 'p rp 'r rr))
+  (define v
+    (λ (s)
+      (case s
+        [(p) b1]
+        [(q) b2]
+        [(r) b3]
+        [else #f])))
+  (define v*
+    (λ (s)
+      (if (hash-has-key? sigma s)
+          (eval (hash-ref sigma s) v)
+          (v s))))
+  (eq? (eval (psubst sigma fm) v) (eval fm v*))))
+
+;; ===== nenf removes ==> entirely (keeping <=>); rawdnf preserves meaning =====
+(define (no-imp? fm)
+  (match fm
+    [(or #t #f) #t]
+    [`(atom ,_) #t]
+    [`(not ,p) (no-imp? p)]
+    [`(imp ,_ ,_) #f]
+    [`(,(or 'and 'or 'iff) ,p ,q) (and (no-imp? p) (no-imp? q))]
+    [_ #t]))
+(check-property mid (property ([fm gen:prop]) (no-imp? (nenf fm))))
+(check-property mid (property ([fm gen:prop]) (tautology `(iff ,fm ,(rawdnf fm)))))
+
+;; ===== trivial detects a literal occurring with both polarities =====
+(define lit-gen
+  (gen:one-of '((atom p) (not (atom p)) (atom q) (not (atom q)) (atom r) (not (atom r)))))
+(check-property big
+                (property ([lits (gen:list lit-gen #:max-length 6)])
+                          (eq? (trivial lits)
+                               (and (ormap (λ (l) (and (member (negate l) lits) #t)) lits) #t))))
+
 ;; propexamples against oracles
 (check-property low (property ([p (gen:integer-in 2 20)]) (eq? (bddtaut (prime p)) (prime? p))))
 (check-property tiny

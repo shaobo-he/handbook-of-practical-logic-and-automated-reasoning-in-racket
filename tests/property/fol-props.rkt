@@ -7,9 +7,9 @@
 (require rackunit
          rackcheck
          "common.rkt")
-(require (only-in "../../core/lib.rkt" union set-eq))
+(require (only-in "../../core/lib.rkt" union unions set-eq mapf))
 (require (only-in "../../prop/prop.rkt" tautology))
-(require (only-in "../../fol/fol.rkt" holds generalize tsubst fvt fv))
+(require (only-in "../../fol/fol.rkt" holds generalize tsubst fvt fv subst variant funcs onformula))
 (require (only-in "../../fol/skolem.rkt" [nnf skolem-nnf] [simplify skolem-simplify] prenex pnf))
 (require (only-in "../../fol/unif.rkt" fullunify unify-and-apply))
 (require (only-in "../../fol/meson.rkt" meson))
@@ -82,3 +82,52 @@
                           (or (not (tautology fm))
                               (and (andmap exact-nonnegative-integer? (meson fm))
                                    (exact-nonnegative-integer? (tab fm))))))
+
+;; ===== fol.rkt term/formula algebra =====
+
+;; onformula with the identity term function is the identity on formulas
+(check-property big (property ([fm (fol-gen 3)]) (equal? (onformula (λ (t) t) fm) fm)))
+
+;; variant always returns a name that is fresh w.r.t. the avoid-list, and the
+;; result is idempotent once it is fresh
+(define gen:sym (gen:one-of '(x y z w u v)))
+(check-property big
+                (property ([x gen:sym] [vs (gen:list gen:sym #:max-length 6)])
+                          (define x^ (variant x vs))
+                          (and (not (member x^ vs)) (eq? x^ (variant x^ vs)))))
+
+;; substitution lemma / capture-avoidance: the free variables of (subst σ fm)
+;; are exactly the free variables contributed by σ on fm's free variables. A
+;; capture bug would make a free var of some σ(v) disappear (become bound).
+(check-property mid
+                (property ([fm (fol-gen 3)] [sx gen:term] [sy gen:term])
+                          (define sigma (hash 'x sx 'y sy))
+                          (define expected
+                            (unions (map (λ (v) (fvt (hash-ref sigma v `(var ,v)))) (fv fm))))
+                          (set-eq (fv (subst sigma fm)) expected)))
+
+;; tsubst composition: applying σ2 then σ1 equals applying the single composed
+;; substitution (σ1 pushed through σ2's range; domains coincide over {x,y,z})
+(check-property
+ big
+ (property
+  ([t gen:term] [a1 gen:term] [a2 gen:term] [a3 gen:term] [b1 gen:term] [b2 gen:term] [b3 gen:term])
+  (define s2 (hash 'x a1 'y a2 'z a3))
+  (define s1 (hash 'x b1 'y b2 'z b3))
+  (equal? (tsubst s1 (tsubst s2 t)) (tsubst (mapf (λ (tm) (tsubst s1 tm)) s2) t))))
+
+;; funcs reports the correct arity for every symbol it returns (gen:term uses
+;; a/0, f/1, g/2 consistently, so a wrong count would escape this fixed set)
+(check-property big
+                (property ([t gen:term])
+                          (andmap (λ (fa) (and (member fa '((a . 0) (f . 1) (g . 2))) #t))
+                                  (funcs t))))
+
+;; unification decomposes through matching function applications: if g(a,b) and
+;; g(c,d) unify, the unifier makes a=c and b=d
+(check-property mid
+                (property ([a gen:term] [b gen:term] [c gen:term] [d gen:term])
+                          (with-handlers ([exn:fail? (λ (e) #t)])
+                            (define sig (fullunify (list (cons `(fn g ,a ,b) `(fn g ,c ,d)))))
+                            (and (equal? (tsubst sig a) (tsubst sig c))
+                                 (equal? (tsubst sig b) (tsubst sig d))))))

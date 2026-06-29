@@ -146,3 +146,46 @@
 (check-equal? (fv '(forall x (atom (rel P (var x) (var y))))) '(y)) ; bound x not free
 (check-equal? (simplify '(forall x (atom (rel P)))) '(atom (rel P))) ; vacuous quantifier dropped
 (check-equal? (simplify '(and #t (atom (rel P)))) '(atom (rel P)))
+
+;; ===== onformula: map a term function over every argument of every atom =====
+;; the function is applied to each top-level argument of each atom, not recursively
+;; rebuilt term-by-term (so f sees whole arguments like (fn f (var y)), not subterms)
+(check-equal? (onformula (λ (t) `(fn succ ,t)) '(atom (rel P (var x) (fn f (var y)))))
+              '(atom (rel P (fn succ (var x)) (fn succ (fn f (var y))))))
+;; onformula recurses through the logical structure, hitting atoms under quantifiers
+(check-equal? (onformula (λ (t) `(fn succ ,t))
+                         '(forall x (and (atom (rel P (var x))) (atom (rel Q (var y))))))
+              '(forall x (and (atom (rel P (fn succ (var x)))) (atom (rel Q (fn succ (var y)))))))
+;; identity transformation leaves the formula unchanged
+(check-equal? (onformula (λ (t) t) qx=y) qx=y)
+
+;; ===== termval: a custom interpretation that recurses through nesting =====
+;; here func ignores f and returns the argument count, so the value is the arity
+;; of the *outermost* application (1 for (fn f ...)) after recursively evaluating
+(check-equal? (termval (λ (f args) (length args)) (hash 'x 0) '(fn f (fn g (var x)))) 1)
+(check-equal? (termval (λ (f args) (length args)) (hash 'x 0) '(fn g (var x) (fn h))) 2)
+
+;; ===== funcs / functions on constants (0-arity) =====
+(check-equal? (funcs '(fn a)) '((a . 0))) ; a constant is a 0-arity function
+(check-equal? (sort (functions '(atom (rel P (fn a) (fn b)))) symbol<? #:key car) '((a . 0) (b . 0)))
+
+;; ===== tsubst: composition law (apply two substitutions = apply the composite) =====
+(let ([s2 (hash 'x '(fn f (var y)) 'y '(fn a))]
+      [s1 (hash 'x '(fn b) 'y '(fn g (var z)) 'z '(fn c))])
+  (define t '(fn h (var x) (fn k (var y) (var z))))
+  ;; composing s1 after s2: push s2's range through s1 (domains coincide here)
+  (check-equal?
+   (tsubst s1 (tsubst s2 t))
+   (tsubst (hash 'x (tsubst s1 (hash-ref s2 'x)) 'y (tsubst s1 (hash-ref s2 'y)) 'z '(fn c)) t)))
+
+;; ===== subst: capture-avoidance corner cases =====
+;; no clash: bound x is left alone when the substituted term has no x
+(check-equal? (subst (hash 'y '(fn a)) '(forall x (atom (rel P (var x) (var y)))))
+              '(forall x (atom (rel P (var x) (fn a)))))
+;; clash: substituting y -> (var x) under (forall x ...) would capture x, so the
+;; bound x is renamed to x^ first
+(check-equal? (subst (hash 'y '(var x)) '(forall x (atom (rel P (var x) (var y)))))
+              '(forall x^ (atom (rel P (var x^) (var x)))))
+;; substituting an away-bound variable is a no-op (y is bound, not free)
+(check-equal? (subst (hash 'y '(var x)) '(forall y (atom (rel = (var x) (var y)))))
+              '(forall y (atom (rel = (var x) (var y)))))

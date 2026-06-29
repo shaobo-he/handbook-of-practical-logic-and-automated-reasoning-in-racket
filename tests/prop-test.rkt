@@ -71,3 +71,64 @@
 (check-true (tautology '(imp (atom p) (or (atom p) (atom q)))))
 (check-true (satisfiable '(iff (atom p) (atom q))))
 (check-false (tautology '(imp (or (atom p) (atom q)) (and (atom p) (atom q)))))
+
+;; ===== onallvaluations (the meta-operator behind tautology) =====
+;; a constant-true subfn holds over every valuation, regardless of atoms
+(check-true (onallvaluations (λ (v) #t) (λ (s) #f) '(a b)))
+(check-false (onallvaluations (λ (v) #f) (λ (s) #f) '(a b)))
+;; folding (eval fm) over all valuations is exactly tautology
+(define oav-fm '(or (atom p) (not (atom p))))
+(check-equal? (onallvaluations (λ (v) (eval oav-fm v)) (λ (s) #f) (atoms oav-fm)) (tautology oav-fm))
+(check-equal? (onallvaluations (λ (v) (eval '(or (atom p) (atom q)) v)) (λ (s) #f) '(p q))
+              (tautology '(or (atom p) (atom q))))
+
+;; ===== allsatvaluations (enumerate the satisfying rows) =====
+;; p \/ q is false only when both are false: 3 of the 4 rows satisfy it
+(check-equal? (length (allsatvaluations (λ (v) (eval '(or (atom p) (atom q)) v)) (λ (s) #f) '(p q)))
+              3)
+;; a tautology over two atoms satisfies all four rows; a contradiction none
+(check-equal?
+ (length (allsatvaluations (λ (v) (eval '(or (atom p) (not (atom p))) v)) (λ (s) #f) '(p)))
+ 2)
+(check-equal?
+ (length (allsatvaluations (λ (v) (eval '(and (atom p) (not (atom p))) v)) (λ (s) #f) '(p)))
+ 0)
+;; the returned valuations really do satisfy the formula
+(check-true (andmap (λ (v) (eval '(iff (atom p) (atom q)) v))
+                    (allsatvaluations (λ (v) (eval '(iff (atom p) (atom q)) v)) (λ (s) #f) '(p q))))
+
+;; ===== mk-lits (build the literal conjunction picked out by a valuation) =====
+(check-equal? (mk-lits '((atom p) (atom q)) (λ (x) #t)) '(and (atom p) (atom q)))
+(check-equal? (mk-lits '((atom p) (atom q)) (λ (x) (eq? x 'p))) '(and (atom p) (not (atom q))))
+
+;; ===== literal predicates: negative / positive / negate =====
+(check-true (negative '(not (atom p))))
+(check-false (negative '(atom p)))
+(check-true (positive '(atom p)))
+(check-false (positive '(not (atom p))))
+(check-equal? (negate '(atom p)) '(not (atom p)))
+(check-equal? (negate '(not (atom p))) '(atom p))
+;; negate is an involution on literals
+(check-equal? (negate (negate '(atom p))) '(atom p))
+(check-equal? (negate (negate '(not (atom p)))) '(not (atom p)))
+
+;; ===== trivial (a clause holding a literal and its negation) =====
+(check-true (trivial (list '(atom p) '(not (atom p)))))
+(check-false (trivial (list '(atom p) '(atom q))))
+(check-false (trivial '()))
+(check-true (trivial (list '(atom q) '(atom p) '(not (atom p)))))
+
+;; ===== psubst (compound replacements, single simultaneous pass) =====
+(check-equal? (psubst (hash 'p '(atom r)) '(and (atom p) (atom q))) '(and (atom r) (atom q)))
+(check-equal? (psubst (hash 'p '(or (atom a) (atom b))) '(and (atom p) (atom q)))
+              '(and (or (atom a) (atom b)) (atom q)))
+;; atoms outside the substitution's domain are left untouched
+(check-equal? (psubst (hash 'z '(atom w)) '(imp (atom p) (atom q))) '(imp (atom p) (atom q)))
+
+;; ===== dual rejects ==> and <=> =====
+(check-exn exn:fail? (λ () (dual '(imp (atom p) (atom q)))))
+(check-exn exn:fail? (λ () (dual '(iff (atom p) (atom q)))))
+
+;; ===== rawdnf preserves meaning (distribution is equivalence-preserving) =====
+(define rd '(and (or (atom p) (atom q)) (or (atom r) (atom p))))
+(check-true (tautology `(iff ,rd ,(rawdnf rd))))

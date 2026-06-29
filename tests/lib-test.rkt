@@ -99,3 +99,66 @@
 (let ([e (equate (cons 'b 'c) (equate (cons 'a 'b) unequal))])
   (check-true (equivalent e 'a 'c)) ; transitive
   (check-true (subset '(a b c) (equated e))))
+
+;; ===== valmod / undef (closure-based finite functions) =====
+;; valmod overrides one key and delegates everything else to the base fn.
+(check-equal? ((valmod 0 1 (λ (x) (+ x 100))) 0) 1) ; overridden key
+(check-equal? ((valmod 0 1 (λ (x) (+ x 100))) 5) 105) ; delegates to base
+(check-equal? ((valmod 'a 1 (λ (x) 'fallback)) 'a) 1)
+(check-equal? ((valmod 'a 1 (λ (x) 'fallback)) 'b) 'fallback)
+;; undef is the empty closure: it raises on every input.
+(check-exn exn:fail? (λ () (undef 'anything)))
+;; chained valmods: layered overrides, outermost wins; undef is the base.
+(check-equal? ((valmod 'a 1 (valmod 'b 2 undef)) 'a) 1)
+(check-equal? ((valmod 'a 1 (valmod 'b 2 undef)) 'b) 2)
+(check-exn exn:fail? (λ () ((valmod 'a 1 (valmod 'b 2 undef)) 'c)))
+;; order matters: the outer binding shadows an inner one for the same key.
+(check-equal? ((valmod 'a 1 (valmod 'a 2 undef)) 'a) 1)
+
+;; ===== allsets / allsubsets / allnonemptysubsets (combinatorial content) =====
+;; allsets m l = the C(len,m) m-element subsets of l.
+(check-equal? (length (allsets 2 '(a b c d))) 6) ; C(4,2) = 6 (not 3!)
+(check-true (andmap (λ (s) (= (length s) 2)) (allsets 2 '(a b c d)))) ; each has m elems
+(check-true (andmap (λ (s) (subset s '(a b c d))) (allsets 2 '(a b c d))))
+(check-equal? (length (allsets 3 '(a b c d e))) 10) ; C(5,3) = 10
+(check-equal? (allsets 3 '(a b)) '()) ; m > len => no subsets
+;; every non-empty subset is genuinely non-empty and a subset of the input.
+(check-true (andmap pair? (allnonemptysubsets '(a b c))))
+(check-true (andmap (λ (s) (subset s '(a b c))) (allnonemptysubsets '(a b c))))
+
+;; ===== image (correctness of element transformation) =====
+(check-true (set-eq (image (λ (x) (* x 2)) '(1 2 3)) '(2 4 6)))
+
+;; ===== chop-list edges =====
+(check-equal? (let-values ([(a b) (chop-list 0 '(1 2 3))])
+                (list a b))
+              '(() (1 2 3))) ; n = 0
+(check-equal? (let-values ([(a b) (chop-list 3 '(1 2 3))])
+                (list a b))
+              '((1 2 3) ())) ; n = length
+;; splitting then appending reconstructs the original list.
+(check-equal? (let-values ([(a b) (chop-list 2 '(1 2 3 4))])
+                (append a b))
+              '(1 2 3 4))
+
+;; ===== insertat bounds =====
+(check-equal? (insertat 3 'x '(a b c)) '(a b c x)) ; at the end
+(check-exn exn:fail? (λ () (insertat 5 'x '(a b c)))) ; out of bounds
+
+;; ===== repeat: function that raises immediately returns the seed =====
+(check-equal? (repeat (λ (x) (error "fail")) 0) 0)
+
+;; ===== union-find: longer chains and disjoint classes =====
+;; chaining a-b-c-d-e merges all five into one class.
+(let ([p (equate (cons 'd 'e)
+                 (equate (cons 'c 'd) (equate (cons 'b 'c) (equate (cons 'a 'b) unequal))))])
+  (check-true (equivalent p 'a 'b))
+  (check-true (equivalent p 'a 'c))
+  (check-true (equivalent p 'a 'd))
+  (check-true (equivalent p 'a 'e))
+  (check-true (subset '(a b c d e) (equated p))))
+;; disjoint merges stay disjoint: {a,b} and {c,d,e} never connect.
+(let ([p (equate (cons 'd 'e) (equate (cons 'c 'd) (equate (cons 'a 'b) unequal)))])
+  (check-true (equivalent p 'a 'b))
+  (check-true (equivalent p 'c 'e))
+  (check-false (equivalent p 'a 'c)))

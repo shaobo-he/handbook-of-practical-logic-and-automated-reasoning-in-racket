@@ -9,6 +9,7 @@
 (require (only-in "../../core/lib.rkt"
                   setify
                   union
+                  unions
                   intersect
                   subtract
                   subset
@@ -18,8 +19,15 @@
                   allpairs
                   distinctpairs
                   allsubsets
+                  allnonemptysubsets
+                  allsets
                   non
                   funpow
+                  repeat
+                  valmod
+                  chop-list
+                  index
+                  earlier
                   undefined
                   update
                   undefine
@@ -111,3 +119,104 @@
                 (property ([a gen:nat] [b gen:nat])
                           (let ([p (equate (cons a b) unequal)])
                             (equal? (canonize p (canonize p a)) (canonize p a)))))
+
+;; ===== local generators and oracle helpers =====
+(define gen:nonempty-natlist
+  (gen:map (gen:tuple gen:nat gen:natlist) (λ (t) (cons (car t) (cadr t)))))
+;; a list paired with a valid split point 0..length, for chop-list
+(define gen:chop-input
+  (gen:bind gen:natlist (λ (l) (gen:map (gen:integer-in 0 (length l)) (λ (n) (cons n l))))))
+;; a non-empty list paired with a valid index 0..length-1, for index
+(define gen:list+index
+  (gen:bind gen:nonempty-natlist
+            (λ (l) (gen:map (gen:integer-in 0 (sub1 (length l))) (λ (i) (cons i l))))))
+
+(define (fact n)
+  (if (<= n 1)
+      1
+      (* n (fact (sub1 n)))))
+(define (binom n k)
+  (if (or (< k 0) (> k n))
+      0
+      (quotient (fact n) (* (fact k) (fact (- n k))))))
+;; consecutive pairs (a.b)(b.c)... used to chain equate over a whole list
+(define (consec-pairs l)
+  (if (or (null? l) (null? (cdr l)))
+      '()
+      (cons (cons (car l) (cadr l)) (consec-pairs (cdr l)))))
+
+;; ===== valmod (closure-based finite functions) =====
+;; valmod a y f maps a->y and delegates every other key to f.
+(check-property big
+                (property ([a gen:nat] [y gen:nat] [k gen:nat])
+                          (define f (λ (x) (+ x 100)))
+                          (and (= ((valmod a y f) a) y)
+                               (or (= k a) (= ((valmod a y f) k) (+ k 100))))))
+
+;; ===== allsets: exactly C(len,m) distinct m-element subsets of l =====
+(check-property big
+                (property ([raw gen:natlist] [m (gen:integer-in 0 6)])
+                          (define l (setify raw))
+                          (define ss (allsets m l))
+                          (and (= (length ss) (binom (length l) m)) ; correct count
+                               (andmap (λ (s) (= (length s) m)) ss) ; each has m elems
+                               (andmap (λ (s) (subset s l)) ss) ; each a subset of l
+                               (= (length ss) (length (setify ss)))))) ; all distinct
+
+;; ===== allsubsets / allnonemptysubsets =====
+(check-property big
+                (property ([raw gen:natlist])
+                          (define d (setify raw))
+                          (and (andmap (λ (s) (subset s d)) (allsubsets d)) ; all subsets
+                               (set-eq (unions (allsubsets d)) d)))) ; cover the whole set
+(check-property big
+                (property ([raw gen:natlist])
+                          (define d (setify raw))
+                          (and (= (length (allnonemptysubsets d)) (sub1 (expt 2 (length d))))
+                               (andmap pair? (allnonemptysubsets d)))))
+
+;; ===== chop-list: splitting preserves the list and the prefix length =====
+(check-property big
+                (property ([ni gen:chop-input])
+                          (define n (car ni))
+                          (define l (cdr ni))
+                          (let-values ([(a b) (chop-list n l)])
+                            (and (equal? (append a b) l) (= (length a) n)))))
+
+;; ===== index: returns a position holding the searched element =====
+(check-property big
+                (property ([il gen:list+index])
+                          (define i (car il))
+                          (define l (cdr il))
+                          (define x (list-ref l i))
+                          (equal? (list-ref l (index x l)) x)))
+
+;; ===== earlier: a strict order by first occurrence, hence transitive =====
+(check-property big
+                (property ([l gen:natlist] [x gen:nat] [y gen:nat] [z gen:nat])
+                          (or (not (and (earlier l x y) (earlier l y z))) (earlier l x z))))
+
+;; ===== image: applies f to every element (dedup => length over setify) =====
+(check-property big
+                (property ([l gen:natlist])
+                          (define f (λ (x) (+ x 10))) ; injective
+                          (and (andmap (λ (x) (and (member (f x) (image f l)) #t)) l)
+                               (= (length (image f l)) (length (setify l))))))
+
+;; ===== repeat: iterates f until it raises; result is the last good value =====
+(check-property big
+                (property ([x gen:nat] [bound (gen:integer-in 0 6)])
+                          (define f
+                            (λ (n)
+                              (if (< n bound)
+                                  (add1 n)
+                                  (error "done"))))
+                          (= (repeat f x) (max x bound))))
+
+;; ===== union-find: chaining equate over a list merges it into one class =====
+(check-property big
+                (property ([raw gen:natlist])
+                          (define d (setify raw))
+                          (or (< (length d) 2)
+                              (let ([p (foldl equate unequal (consec-pairs d))])
+                                (andmap (λ (x) (equivalent p (car d) x)) d)))))
