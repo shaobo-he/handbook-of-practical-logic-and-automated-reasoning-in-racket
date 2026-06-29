@@ -21,7 +21,10 @@
 
 (provide (all-defined-out))
 
-;; ===== rename a rule's variables, returning (rule . next-counter) =====
+;; ===== rename a rule's variables apart, returning (renamed-rule . next-counter) =====
+;; Each use of a rule must get fresh variables so distinct uses don't share
+;; bindings. inst maps the rule's free vars to _k, _k+1, ... ; applying it to the
+;; body and head gives the renamed rule, and k advances by the number of vars used.
 (define (renamerule k rule)
   (define asm (car rule))
   (define c (cdr rule))
@@ -60,6 +63,9 @@
                 #f
                 (car pos)))))
 
+;; prove fm by refuting its negation: turn ¬fm into Horn rules and backchain from
+;; the false goal #f (a clause with empty head), with iterative deepening on the
+;; depth limit so the first proof found uses the fewest steps.
 (define (hornprove fm)
   (define rules (map hornify (simpcnf (skolemize `(not ,(generalize fm))))))
   (deepen (λ (n) (cons (backchain rules n 0 undefined (list #f)) n)) 0))
@@ -68,6 +74,8 @@
 (define (simpleprolog rules gl)
   (backchain rules -1 0 undefined (list gl)))
 
+;; run the goal, then report the answer substitution: solve the unifier and read
+;; off each goal variable's value as an equation (var x) = t (dropping unbound ones).
 (define (prolog rules gl)
   (define i (solve (simpleprolog rules gl)))
   (filter-map (λ (x)

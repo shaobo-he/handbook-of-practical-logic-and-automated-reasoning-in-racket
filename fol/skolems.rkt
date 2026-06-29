@@ -18,6 +18,7 @@
      `(fn ,(string->symbol (string-append "old_" (symbol->string f))) ,@(map rename-term args))]
     [_ tm]))
 
+;; apply the "old_" renaming to every term in fm (onformula maps over its atoms)
 (define (rename-form fm)
   (onformula rename-term fm))
 

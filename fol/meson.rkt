@@ -16,7 +16,11 @@
 
 (provide (all-defined-out))
 
-;; ===== contrapositives of a clause =====
+;; ===== contrapositives of a clause (the PTTP rule form) =====
+;; A clause l1∨...∨ln becomes n Horn-style rules (body . head): pick each literal
+;; in turn as the head and take the negations of the rest as the body. An
+;; all-negative clause additionally yields a rule with head #f (false), the only
+;; way such a clause can ever be used to close a branch.
 (define (contrapositives cls)
   (define base (map (λ (c) (cons (map negate (subtract cls (list c))) c)) cls))
   (if (andmap negative cls)
@@ -63,10 +67,17 @@
   (map (λ (d) (puremeson001 (list-conj d))) (simpdnf fm1)))
 
 ;; ===== MESON with repetition checking and divide-and-conquer =====
+;; #t iff fm1 and fm2 are already identical under env — i.e. unifying them adds no
+;; new bindings. Used to spot when a goal recurs unchanged in its ancestor chain.
 (define (meson-equal? env fm1 fm2)
   (with-handlers ([exn:fail? (λ (e) #f)])
     (equal? (unify-literals env (cons fm1 fm2)) env)))
 
+;; Solve goals1 (budget n1) then goals2, where r1/r2 are the inferences each had
+;; left over. The (<= (+ n2 r1) (+ n3 r2)) guard raises unless this ordering used
+;; strictly fewer inferences than the alternative (n3 is set to -1 for the first
+;; attempt and to the first attempt's cost for the retry), so the two orderings
+;; race and the cheaper one wins — the divide-and-conquer search heuristic.
 (define (expand2 expfn goals1 n1 goals2 n2 n3 cont env k)
   (expfn goals1
          (λ (e1 r1 k1)

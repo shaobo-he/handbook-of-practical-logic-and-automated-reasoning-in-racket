@@ -12,13 +12,23 @@
 
 (provide (all-defined-out))
 
-;; #t if binding x := t would be trivial (t is x); raises on a cyclic binding
+;; The occurs-check, run before adding a binding x := t:
+;;  - returns #t when the binding is trivial (t already resolves to x), so it can
+;;    be skipped;
+;;  - returns #f when t is a sound, non-cyclic binding;
+;;  - raises when t is a compound term that contains x (a cycle like x := f(x)).
+;; For a variable y it follows y's existing binding in env (a chain), but only if
+;; y is bound: an unbound y cannot create a cycle, so we treat it as non-trivial.
 (define (istriv env x t)
   (match t
     [`(var ,y) (or (equal? y x) (and (defined env y) (istriv env x (apply env y))))]
     [`(fn ,f ,@args) (and (ormap (λ (a) (istriv env x a)) args) (error 'unify "cyclic"))]))
 
-;; eqs is a list of (s . t) pairs to be unified under env
+;; Process the equation worklist eqs (a list of (s . t) pairs) under env. Equal
+;; function applications decompose into pairwise argument equations pushed back
+;; onto the worklist (with an arity/symbol clash being a unification failure); an
+;; equation with a variable on either side is handed to unify-var. Decomposing
+;; before binding keeps the structural work ahead of the variable bindings.
 (define (unify env eqs)
   (match eqs
     ['() env]

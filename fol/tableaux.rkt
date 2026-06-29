@@ -14,7 +14,11 @@
 
 (provide (all-defined-out))
 
-;; ===== unify literals (treat the leading relation like a function) =====
+;; ===== unify two literals =====
+;; A positive literal (atom (rel P t ...)) is unified by reusing term unification:
+;; reinterpret it as the term (fn P t ...) so the predicate symbol plays the role
+;; of a function symbol. Negations must match in sign (peeled off in step), and
+;; #f (the empty/false literal) unifies only with itself.
 (define (unify-literals env tmp)
   (match tmp
     [`((atom (rel ,p1 ,@a1)) . (atom (rel ,p2 ,@a2)))
@@ -27,6 +31,10 @@
   (unify-literals env (cons (car pq) (negate (cdr pq)))))
 
 ;; ===== Prawitz-style procedure (unification on DNF) =====
+;; Refute a DNF (list of disjuncts, each a list of literals) under accumulated
+;; unifier acc: close each disjunct by unifying some positive literal with the
+;; complement of some negative one, threading the resulting substitution to the
+;; next disjunct. tryfind backtracks over the candidate complementary pairs.
 (define (unify-refute djs acc)
   (match djs
     ['() acc]
@@ -34,6 +42,11 @@
      (define-values (pos neg) (partition positive head))
      (tryfind (λ (pq) (unify-refute tail (unify-complements acc pq))) (allpairs cons pos neg))]))
 
+;; One round of Prawitz's procedure: rename the original matrix djs0 apart with a
+;; fresh batch of variables (_<n*l+k>), distribute the renamed copy into the
+;; running DNF djs, and try to refute it. If refutation fails, add another renamed
+;; copy and recurse — so n is the number of instantiation rounds (the search
+;; deepens by conjoining one more fresh instance of the matrix each time).
 (define (prawitz-loop djs0 fvs djs n)
   (define l (length fvs))
   (define newvars
@@ -61,6 +74,8 @@
         ['() (error 'tableau "tableau: no proof")]
         [`((and ,p ,q) . ,unexp) (tableau (cons p (cons q unexp)) lits n cont env k)]
         [`((or ,p ,q) . ,unexp)
+         ;; branch: explore p first; the continuation closes the q branch with the
+         ;; SAME unifier reached on the p side, so both branches must close together
          (tableau (cons p unexp) lits n (λ (env k) (tableau (cons q unexp) lits n cont env k)) env k)]
         [`((forall ,x ,p) . ,unexp)
          ;; instantiate with a fresh var, but append the original (forall x p) back
@@ -70,6 +85,9 @@
          (define p* (subst (update x y undefined) p))
          (tableau (cons p* (append unexp (list `(forall ,x ,p)))) lits (sub1 n) cont env (add1 k))]
         [`(,fm . ,unexp)
+         ;; fm is a literal: try to close this branch by unifying it with the
+         ;; complement of an already-seen literal (then run the continuation). If no
+         ;; literal closes it, record fm in lits and carry on with the rest.
          (with-handlers ([exn:fail? (λ (e) (tableau unexp (cons fm lits) n cont env k))])
            (tryfind (λ (l) (cont (unify-complements env (cons fm l)) k)) lits))])))
 

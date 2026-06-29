@@ -31,7 +31,10 @@
 
 (define resolution-verbose (make-parameter #f))
 
-;; ===== most general unifier of a list of literals =====
+;; ===== most general unifier of a whole list of literals =====
+;; Unify the list pairwise (l0 with l1, then the result env carries into l1 with
+;; l2, ...) and solve the accumulated env into an idempotent substitution that
+;; makes all the literals equal at once.
 (define (mgu l env)
   (match l
     [`(,a ,b . ,rest) (mgu (cons b rest) (unify-literals env (cons a b)))]
@@ -81,7 +84,11 @@
             cls2))
   (foldr (λ (p acc) (resolvents cls1* cls2* p acc)) '() cls1*))
 
-;; ===== basic "Argonne" loop (no deletion) =====
+;; ===== given-clause loop, basic "Argonne" form (no deletion) =====
+;; The shared shape of all three loops below: pick the next clause cl from unused,
+;; move it to used, resolve it against every used clause, and succeed if any
+;; resolvent is the empty clause. resloop001 keeps every resolvent (just appends
+;; news); resloop002 and presloop filter them through incorporate instead.
 (define (resloop001 used unused)
   (match unused
     ['() (error 'resolution "No proof found")]
@@ -101,7 +108,11 @@
   (define fm1 (askolemize `(not ,(generalize fm))))
   (map (λ (d) (pure-resolution001 (list-conj d))) (simpdnf fm1)))
 
-;; ===== term/literal matching (for subsumption) =====
+;; ===== one-way matching (for subsumption) =====
+;; Unlike unify, term-match is asymmetric: only variables on the LEFT (the
+;; pattern) may be bound, and a left variable already bound in env must match its
+;; instance exactly. So it asks "does the pattern match this instance as-is?",
+;; which is what subsumption needs (the subsuming clause must map INTO the other).
 (define (term-match env eqs)
   (match eqs
     ['() env]
@@ -124,6 +135,9 @@
      (term-match env (list (cons `(fn ,p ,@a1) `(fn ,q ,@a2))))]
     [_ (error 'match-literals "match_literals")]))
 
+;; cls1 subsumes cls2 iff some single substitution maps every literal of cls1 to a
+;; literal of cls2 (so cls1 is at least as general and cls2 is redundant). subsume
+;; threads one env across all of cls1's literals; tryfind backtracks over choices.
 (define (subsumes-clause cls1 cls2)
   (define (subsume env cls)
     (match cls
@@ -170,6 +184,8 @@
   (map (λ (d) (pure-resolution002 (list-conj d))) (simpdnf fm1)))
 
 ;; ===== positive (P1) resolution =====
+;; restrict resolution so that at least one parent clause is all-positive; this
+;; prunes the search space while staying refutation-complete.
 (define (presolve-clauses cls1 cls2)
   (if (or (andmap positive cls1) (andmap positive cls2))
       (resolve-clauses cls1 cls2)
@@ -195,6 +211,9 @@
   (map (λ (d) (pure-presolution (list-conj d))) (simpdnf fm1)))
 
 ;; ===== set-of-support restriction =====
+;; Seed `used` with the clauses that have a positive literal and put the purely
+;; negative clauses (the support set, typically derived from the negated goal)
+;; into `unused`, so the search only ever resolves starting from the support.
 (define (pure-resolution003 fm)
   (define-values (used unused)
     (partition (λ (cl) (ormap positive cl)) (simpcnf (specialize (pnf fm)))))
