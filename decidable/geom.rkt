@@ -56,6 +56,10 @@
    (cons '= '(and (atom (rel = (var |1_x|) (var |2_x|))) (atom (rel = (var |1_y|) (var |2_y|)))))))
 
 ;; ===== convert a formula to coordinate form =====
+;; Replace every geometric atom by its algebraic definition from `coordinations`,
+;; renaming the dictionary's generic points 1..n to the atom's actual arguments
+;; (point v becomes coordinates v_x, v_y). Every predicate used must appear in
+;; `coordinations`, otherwise the (assoc ...) lookup fails.
 (define (coordinate fm)
   (onatoms
    (λ (at)
@@ -77,6 +81,9 @@
    fm))
 
 ;; ===== invariance checks =====
+;; Build (iff z z[coords := transformed coords]): z should mean the same after the
+;; given coordinate change x*,y*. The (range 1 6) assumes at most six named points
+;; (1_x..6_y); m substitutes point i's coordinates through the transformation.
 (define (invariant x*y* sz)
   (define x* (car x*y*))
   (define y* (cdr x*y*))
@@ -111,6 +118,10 @@
          (coordinate fm)))
 
 ;; ===== Wu's method =====
+;; Successively pseudo-divide the conclusion polynomial p by the triangulated
+;; hypothesis set, accumulating the non-degeneracy conditions (heads assumed
+;; nonzero) in degens. p reaching zero means the theorem holds under those
+;; conditions; an empty triang with nonzero p records p = 0 as a residual demand.
 (define (pprove vars triang p degens)
   (if (equal? p zero)
       degens
@@ -129,6 +140,10 @@
                             degens*
                             (coefficients vars p*))))))])))
 
+;; Triangulate the hypothesis polynomials: per variable, keep one lowest-degree
+;; polynomial and pseudo-divide the others by it to drop their degree in that
+;; variable, peeling variables off until the set is upper-triangular -- the form
+;; pprove can divide a conclusion through.
 (define (triangulate vars consts pols)
   (cond
     [(null? vars) pols]
@@ -149,6 +164,11 @@
                                     r))
                                 ps)))])]))
 
+;; Prove a geometry theorem (imp hypotheses conclusion) by Wu's method: coordinatise,
+;; pin the chosen `zeros` coordinates to the origin/axes, triangulate the hypothesis
+;; polynomials, and pseudo-divide each conclusion polynomial through. Returns the
+;; list of non-degeneracy conditions under which the theorem holds. `vars` must be
+;; exactly the free coordinate variables remaining after zeroing.
 (define (wu fm vars zeros)
   (define gfm0 (coordinate fm))
   (define gfm (subst (foldr (λ (v acc) (update v zero acc)) undefined zeros) gfm0))

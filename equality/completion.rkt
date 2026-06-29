@@ -29,6 +29,9 @@
   (values (subst (fpf fvs1 nms1) fm1) (subst (fpf fvs2 nms2) fm2)))
 
 ;; ===== critical pairs via unification-based overlap =====
+;; listcases applies fn to each element h in turn; rfn is a continuation that
+;; rebuilds the whole list with the (possibly modified) element back in place, so
+;; each overlap found deep inside one element is reported in terms of the parent.
 (define (listcases fn rfn lis acc)
   (match lis
     ['() acc]
@@ -36,6 +39,8 @@
      (append (fn h (λ (i h*) (rfn i (cons h* t))))
              (listcases fn (λ (i t*) (rfn i (cons h t*))) t acc))]))
 
+;; Find every position in tm where lr's left side unifies, calling rfn with the
+;; unifier and the term rebuilt with lr's right side substituted at that position.
 (define (overlaps lr tm rfn)
   (define l (car lr))
   (define r (cdr lr))
@@ -53,6 +58,9 @@
     [(`(atom (rel = ,l1 ,r1)) `(atom (rel = ,l2 ,r2)))
      (overlaps (cons l1 r1) l2 (λ (i t) (subst i (mk-eq t r2))))]))
 
+;; Rename the two equations apart first (so their variables cannot spuriously
+;; unify), then overlap them. Since equations are unordered, we compute overlaps
+;; in both directions -- unless the two inputs are identical, when one suffices.
 (define (critical-pairs fma fmb)
   (define-values (fm1 fm2) (renamepair fma fmb))
   (if (equal? fma fmb)
@@ -68,6 +76,8 @@
      (cond
        [(ord s* t*) (values s* t*)]
        [(ord t* s*) (values t* s*)]
+       ;; neither direction respects the ordering: the equation cannot be turned
+       ;; into a terminating rewrite rule with this ordering.
        [else (error 'normalize-and-orient "Can't orient equation")])]))
 
 (define (status trip eqs0)
@@ -103,6 +113,9 @@
      (status trip* eqs)
      (complete ord trip*)]
     ['()
+     ;; No more pending critical pairs. If equations were deferred because they
+     ;; could not be oriented earlier, retry one now: the rule set has grown, so a
+     ;; previously unorientable equation may now normalize to an orientable form.
      (if (null? def)
          eqs
          (let ([e (findf (λ (e) (can (λ (x) (normalize-and-orient ord eqs x)) e)) def)])

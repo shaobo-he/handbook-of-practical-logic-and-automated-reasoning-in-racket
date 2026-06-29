@@ -29,6 +29,8 @@
       [`(or ,f1 ,f2) (or (do-holds? f1) (do-holds? f2))]
       [`(imp ,f1 ,f2) (or (not (do-holds? f1)) (do-holds? f2))]
       [`(iff ,f1 ,f2) (equal? (do-holds? f1) (do-holds? f2))]
+      ;; quantifiers range over the (finite) domain; an empty domain makes
+      ;; forall vacuously true and exists vacuously false
       [`(forall ,s ,f) (andmap (λ (x) (holds domain func pred (hash-set v s x) f)) domain)]
       [`(exists ,s ,f) (ormap (λ (x) (holds domain func pred (hash-set v s x) f)) domain)]))
   (do-holds? fm))
@@ -76,6 +78,9 @@
     [`(var ,vn) (hash-ref sfn vn tm)]
     [`(fn ,f ,@args) `(fn ,f ,@(map (λ (t) (tsubst sfn t)) args))]))
 
+;; first name in the sequence x, x^, x^^, ... that avoids `vars`. Appends ^
+;; until fresh, so it loops forever if `vars` contains every ^-variant (use with
+;; finite vars lists, which is always the case here).
 (define (variant x vars)
   (if (member x vars)
       (variant (string->symbol (string-append (symbol->string x) "^")) vars)
@@ -89,6 +94,10 @@
     [`(,(and o (or 'and 'or 'imp 'iff)) ,f1 ,f2) `(,o ,(subst subfn f1) ,(subst subfn f2))]
     [`(,(and q (or 'forall 'exists)) ,s ,f) (substq subfn q s f)]))
 
+;; substitute under a quantifier (forall/exists) x, avoiding variable capture:
+;; if substituting some free var of p (other than x) would bring x into scope,
+;; rename the bound x to a fresh x^ first. The update x:=x^ keeps x's own
+;; occurrences in p mapped to the renamed bound variable.
 (define (substq subfn q x p)
   (define x^
     (if (ormap (λ (y) (member x (fvt (hash-ref subfn y `(var ,y))))) (subtract (fv p) `(,x)))
@@ -97,6 +106,9 @@
   `(,q ,x^ ,(subst (update x `(var ,x^) subfn) p)))
 
 ;; ===== function symbols =====
+;; collect the function symbols of a term as (name . arity) pairs; the arity is
+;; tracked so the same name used at different arities counts as distinct, and
+;; `union` deduplicates across the argument subterms
 (define (funcs tm)
   (match tm
     [`(var ,vn) '()]

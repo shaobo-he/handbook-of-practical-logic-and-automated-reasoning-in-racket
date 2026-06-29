@@ -78,6 +78,10 @@
 ;; closure-based finite functions (used for model interpretations)
 (define (undef x)
   (error 'undef "undefined function"))
+;; valmod: extend f with a single override, returning a new closure that
+;; maps a -> y and delegates every other input to f. Chaining valmods
+;; (valmod a 1 (valmod b 2 undef)) layers overrides, with the outermost
+;; binding taking priority on overlap.
 (define (valmod a y f)
   (λ (x)
     (if (equal? x a)
@@ -126,7 +130,10 @@
     [`(,x . ,t) (append (map (λ (y) (cons x y)) t) (distinctpairs t))]
     ['() '()]))
 
-;; all m-element subsets of l
+;; all m-element subsets of l.
+;; Standard binomial recursion: subsets either include (car l) -- prefix it
+;; onto each (m-1)-subset of the rest -- or exclude it -- the m-subsets of the
+;; rest. union combines (and dedups) the two branches.
 (define (allsets m l)
   (cond
     [(= m 0) (list '())]
@@ -209,6 +216,8 @@
 ;;   (list 'terminal p size) -- p is the canonical representative
 (define unequal (hash))
 
+;; follow the chain of 'nonterminal pointers until a 'terminal entry is
+;; reached; returns (cons representative size).
 (define (terminus ptn a)
   (match (apply ptn a)
     [`(nonterminal . ,b) (terminus ptn b)]
@@ -233,6 +242,9 @@
   (define na (cdr ta))
   (define b* (car tb))
   (define nb (cdr tb))
+  ;; union by size: point the smaller class's representative at the larger
+  ;; one (the survivor gets the combined size na+nb) to keep chains shallow.
+  ;; Already-equal representatives mean a and b share a class -- nothing to do.
   (cond
     [(equal? a* b*) ptn]
     [(<= na nb) (update a* (cons 'nonterminal b*) (update b* (list 'terminal b* (+ na nb)) ptn))]

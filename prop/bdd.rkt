@@ -22,12 +22,17 @@
 (define (print-bdd b)
   (printf "<BDD with ~a nodes>" (bdd-n b)))
 
+;; look up a node by id. A negative id is a complement edge: the whole subtree
+;; is negated, so both children's signs are flipped after looking up |n|.
 (define (expand-node b n)
   (if (>= n 0)
       (tryapplyd (bdd-expand b) n (list empty-prop 1 1))
       (match (tryapplyd (bdd-expand b) (- n) (list empty-prop 1 1))
         [`(,p ,l ,r) (list p (- l) (- r))])))
 
+;; insertion via exception: a hit in the unique table returns the existing id;
+;; a miss raises, and the handler allocates the next id and records the node in
+;; both the unique (node->id) and expand (id->node) tables.
 (define (lookup-unique b node)
   (with-handlers ([exn:fail? (λ (e)
                                (define m (bdd-n b))
@@ -38,6 +43,9 @@
                                        m))])
     (values b (apply (bdd-unique b) node))))
 
+;; build a reduced node. l=r is redundant, so collapse to the shared child. To
+;; keep the representation canonical, nodes are stored with a non-negative low
+;; child: if l<0 we negate both children before lookup and complement the result.
 (define (mk-node b slr)
   (match-define `(,s ,l ,r) slr)
   (cond
@@ -71,6 +79,8 @@
     [(= m1 1) (values bddcomp m2)]
     [(= m2 1) (values bddcomp m1)]
     [else
+     ;; AND is commutative, so a result computed for (m2,m1) serves for (m1,m2);
+     ;; check both orderings in the memo table before recursing
      (define cached (or (tryapplyd comp (cons m1 m2) #f) (tryapplyd comp (cons m2 m1) #f)))
      (if cached
          (values bddcomp cached)
@@ -141,6 +151,11 @@
   (define fvs (atoms (cdr xq)))
   (not (ormap (λ (xe) (and (member (car xe) fvs) #t)) defs)))
 
+;; topologically sort the definitions so each one's right-hand side only mentions
+;; variables defined earlier. Repeatedly peel off a "suitable" def (one whose rhs
+;; references no still-unplaced def variable); when none remains -- either all are
+;; placed or the rest are cyclic -- the error is caught and the leftovers are
+;; folded back into fm as ordinary implications.
 (define (sort-defs acc defs fm)
   (with-handlers ([exn:fail? (λ (e) (values (reverse acc) (foldr restore-iffdef fm defs)))])
     (define xe (or (findf (λ (d) (suitable-iffdef defs d)) defs) (error 'sort-defs "find")))
@@ -149,6 +164,9 @@
     (define ps* (subtract ps (list xe)))
     (sort-defs (cons xe acc) nonps (foldr restore-iffdef fm ps*))))
 
+;; like mkbdd, but sfn caches shared definitions: an atom x that names a
+;; definition resolves to that definition's already-built BDD id instead of a
+;; fresh decision variable, so the structure is shared rather than duplicated.
 (define (mkbdde sfn bddcomp fm)
   (match fm
     [#f (values bddcomp -1)]
@@ -181,6 +199,10 @@
      (let-values ([(bc* b) (mkbdde sfn bddcomp (cdr pe))])
        (mkbdds (update (car pe) b sfn) bc* odefs fm))]))
 
+;; tautology check that exploits shared sub-definitions. Split the antecedent
+;; into defining equivalences (x <=> ...) and the rest; sort-defs orders the
+;; defs acyclically; mkbdds builds each definition once and reuses it, then the
+;; remaining goal is reduced over those shared BDDs.
 (define (ebddtaut fm)
   (define-values (l r)
     (with-handlers ([exn:fail? (λ (e) (values #t fm))])

@@ -20,6 +20,9 @@
   (define q (consequent pq))
   (modusponens (modusponens (axiom-distribimp p p q) th) (imp-refl p)))
 
+;; Negation is encoded as p -> #f (there is no primitive `not`). negatef toggles
+;; that encoding -- it is an involution: (negatef (negatef fm)) = fm -- and
+;; negativef recognises an already-negated formula.
 (define (negatef fm)
   (match fm
     [`(imp ,p #f) p]
@@ -133,6 +136,9 @@
   (define th3 (imp-add-assum p (imp-trans2 th2 th1)))
   (modusponens th3 (imp-swap (imp-refl `(imp ,p (imp ,q #f))))))
 
+;; shunt/unshunt convert between the conjoined-hypothesis form  (p /\ q) -> r
+;; and the curried form  p -> (q -> r)  -- "shunting" a conjunct in and out of
+;; the assumption list. They are mutual inverses.
 (define (shunt th)
   (match-define `(,p . ,q) (dest-and (antecedent (concl th))))
   (modusponens (foldr imp-add-assum th (list p q)) (and-pair p q)))
@@ -166,6 +172,10 @@
   (list (right-doubleneg (imp-add-concl #f (imp-add-assum p (ex-falso q))))
         (imp-add-concl #f (imp-insert p (imp-refl q)))))
 
+;; imp-false-rule / imp-true-rule are the proof-building counterparts of the two
+;; implication tableau cases: imp-false-rule discharges the single ~(p->q) branch
+;; (which produced p and ~q), while imp-true-rule recombines the two branches of
+;; an assumed p->q (the ~p branch and the q branch) into one proof.
 (define (imp-false-rule th)
   (match-define `(,p . ,r) (dest-imp (concl th)))
   (imp-trans-chain (imp-false-conseqs p (funpow 2 antecedent r)) th))
@@ -198,6 +208,10 @@
   (modusponens (imp-front-th n (concl th)) th))
 
 ;; ===== propositional tableau prover =====
+;; A literal is a formula the propositional tableau cannot decompose further:
+;; an atom or its negation. A `forall` is treated as opaque here (the
+;; propositional prover does not look inside quantifiers), so it -- and its
+;; negation -- also count as literals; `exists` is instead expanded away.
 (define (literal? p)
   (match p
     [`(atom ,_) #t]
@@ -206,6 +220,13 @@
     [`(imp (forall ,_ ,_) #f) #t]
     [_ #f]))
 
+;; Tableau refutation of the formula list fms (with discovered literals
+;; accumulated in lits), building an actual kernel proof of the contradiction.
+;; The cases are: (1) #f in fms is an immediate contradiction; (2) p->p is
+;; trivially assumable; (3) ~(p->q) splits into p and ~q; (4) p->q (q /= #f)
+;; branches into ~p and q; (5) a literal closes the branch against a
+;; complementary literal in lits, else moves to the back of fms; (6) any other
+;; connective is eliminated (expanded) and re-processed.
 (define (lcfptab fms lits)
   (match fms
     [`(#f . ,fl) (ex-falso (foldr mk-imp #f (append fl lits)))]

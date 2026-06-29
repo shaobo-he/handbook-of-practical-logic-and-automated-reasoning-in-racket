@@ -127,6 +127,10 @@
   (foldr insert-relevant2 undefined trigs))
 
 ;; ===== merging equivalence classes + relevancies (erf = (eqv . rfn)) =====
+;; merge the classes of p0 and q0. Returns (cons new-consequences (cons eqv* rfn*)):
+;; the car holds the equations newly forced by the merge (triggers whose
+;; premises now coincide) which the caller must feed back in to keep saturating,
+;; and the cdr is the updated (partition . relevance) state.
 (define (equatecons pq erf)
   (define p0 (car pq))
   (define q0 (cdr pq))
@@ -158,6 +162,9 @@
      (define ne (equatecons pq erf))
      (zero-saturate (cdr ne) (union ts (car ne)))]))
 
+;; saturate, then test for a contradiction: if some literal x and its negation
+;; have been forced into the same class, the assignment is inconsistent, which we
+;; record by equating #t with (not #t) (collapsing truth and falsity).
 (define (zero-saturate-and-check erf trigs)
   (define erf* (zero-saturate erf trigs))
   (define eqv* (car erf*))
@@ -236,6 +243,10 @@
        (define eqv (car (saturate n (cons unequal (relevance trigs)) assigs vars)))
        (or (truefalse eqv) (saturate-upto vars (+ n 1) m trigs assigs)))]))
 
+;; prove fm is a tautology by refuting (not fm): triplicate it into definitional
+;; equivalences, collect their triggers, and saturate up to depth 2 (one level of
+;; case-splitting). saturate-upto returns #t on a contradiction and raises
+;; "Not 2-easy" if it cannot decide fm within that limit.
 (define (stalmarck fm)
   (define (include-trig ec f)
     (update (car ec) (union (cdr ec) (tryapplyl f (car ec))) f))

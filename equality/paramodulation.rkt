@@ -19,6 +19,10 @@
 (define paramodulation-verbose (make-parameter #f))
 
 ;; ===== paramodulation within a literal / clause =====
+;; overlapl/overlapc use the same continuation (rfn) style as overlaps: rfn
+;; receives the unifier i and the rebuilt literal/clause, and results accumulate
+;; through these callbacks rather than via ordinary return values. overlapl
+;; descends through a negation, re-wrapping the rebuilt sub-literal in (not ...).
 (define (overlapl lr fm rfn)
   (match fm
     [`(atom (rel ,f ,@args))
@@ -30,6 +34,10 @@
   (listcases (λ (l rf) (overlapl lr l rf)) rfn cl acc))
 
 ;; ===== overall paramodulation of ocl by the equations in pcl =====
+;; For each equation l=r among pcl's literals (only equations -- hence the
+;; filter), rewrite ocl using that equation in both directions, l->r and r->l,
+;; since the equation is not oriented. The unifier is applied to the surviving
+;; literals of both clauses to form each new paramodulant clause.
 (define (paramodulate pcl ocl)
   (foldr (λ (eq acc)
            (define pcl* (subtract pcl (list eq)))
@@ -42,6 +50,9 @@
          '()
          (filter is-eq pcl)))
 
+;; Rename the two clauses apart (disjoint variables) to prevent spurious
+;; unification, then paramodulate in both directions: cls1 into cls2 and cls2
+;; into cls1.
 (define (para-clauses cls1 cls2)
   (define cls1*
     (rename "x"
@@ -64,8 +75,13 @@
                (append* (mapfilter (λ (c) (para-clauses cls c)) used*))))
      (if (member '() news)
          #t
+         ;; incorporate adds each new clause while discarding tautologies and
+         ;; clauses subsumed by existing ones, keeping the unused set minimal.
          (paraloop used* (foldr (λ (n acc) (incorporate cls n acc)) ros news)))]))
 
+;; Seed the clause set with the reflexivity clause x=x so paramodulation can
+;; always rewrite using equality, then run the resolution+paramodulation loop.
+;; The input fm here is already the (negated, clausified) refutation goal.
 (define (pure-paramodulation fm)
   (paraloop '() (cons (list (mk-eq '(var x) '(var x))) (simpcnf (specialize (pnf fm))))))
 

@@ -67,6 +67,10 @@
      (f h (λ (h* n2 d2) (listify f t (λ (t* n3 d3) (cont (cons h* t*) n3 d3)) n2 d2)) n defs)]))
 
 ;; ===== homogenization =====
+;; Rewrite terms so each literal is pure in a single language. A subterm whose head
+;; belongs to `lang` is kept (recursing into its arguments); any alien subterm is
+;; replaced by a fresh variable v_n and a defining equation (v_n = subterm) is
+;; pushed onto defs. The counter n and defs are threaded in CPS through cont.
 (define (homot lang tm cont n defs)
   (match tm
     [`(var ,x) (cont tm n defs)]
@@ -104,6 +108,8 @@
 
 (define (homogenize langs fms)
   (define fvs (unions (map fv fms)))
+  ;; Start the fresh-variable counter past the largest existing v_<k> index so the
+  ;; variables homot introduces cannot collide with ones already in the formulas.
   (define n (+ 1 (foldr (λ (v acc) (max acc (var-index "v_" v))) 0 fvs)))
   (homo langs fms (λ (res n2 defs2) res) n '()))
 
@@ -128,6 +134,10 @@
     [`(,v1 ,v2 . ,rest) (cons (mk-eq `(var ,v1) `(var ,v2)) (arreq (cons v2 rest)))]
     [_ '()]))
 
+;; A full arrangement of a variable partition: assert equality between the
+;; variables within each block (arreq) and disequality between representatives of
+;; distinct blocks (the negated distinct pairs). Together these completely fix
+;; which shared variables are identified -- the information Nelson-Oppen exchanges.
 (define (arrangement part)
   (foldr (λ (p acc) (union (arreq p) acc))
          (map (λ (vw) `(not ,(mk-eq `(var ,(car vw)) `(var ,(cdr vw)))))
@@ -135,6 +145,8 @@
          part))
 
 ;; ===== reduce with trivial equations =====
+;; A "definition" is an equation x = t with x not free in t, letting us substitute
+;; t for x everywhere.
 (define (dest-def fm)
   (match fm
     [`(atom (rel = (var ,x) ,t))
@@ -145,6 +157,9 @@
      (cons x t)]
     [_ (error 'dest-def "dest_def")]))
 
+;; Repeatedly eliminate a trivial definition x = t by substituting it into the
+;; remaining equations, until none is left. Termination assumes the definitions
+;; are acyclic (no x = ...y... together with y = ...x...).
 (define (redeqs eqs)
   (define eq (findf (λ (e) (can dest-def e)) eqs))
   (if eq
@@ -168,6 +183,10 @@
            ll))
   (foldr (λ (h y) (foldr (λ (part acc) (allinsertions h part acc)) '() y)) (list '()) l))
 
+;; Search for an m-element subset of l satisfying p, using exceptions for
+;; backtracking: try including h (and applying p to a subset of size m-1 from the
+;; tail); if that branch raises, retry without h. Exceptions here drive the
+;; nondeterministic search -- they do not signal an error.
 (define (findasubset p m l)
   (if (= m 0)
       (p '())
@@ -187,6 +206,10 @@
                           l))
            (range 0 (add1 (length l)))))
 
+;; Try to refute the combined formula by case-splitting on the shared variable
+;; equalities eqs: find a subset whose collective truth lets some theory's decision
+;; procedure derive a contradiction, then recurse having committed to each such
+;; equality. A raised exception (no refuting subset found) means "not refutable".
 (define (nelop-refute eqs ldseps)
   (with-handlers ([exn:fail? (λ (e) #f)])
     (define dj (findsubset (λ (s) (trydps ldseps (map negate s))) eqs))

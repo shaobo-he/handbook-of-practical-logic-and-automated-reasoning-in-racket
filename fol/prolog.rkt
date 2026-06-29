@@ -32,6 +32,10 @@
   (values (cons (map (λ (a) (subst inst a)) asm) (subst inst c)) (+ k n)))
 
 ;; ===== backchaining prover =====
+;; Prove each goal by trying every rule: rename it apart, unify its head with the
+;; goal, and recurse with the rule's body prepended to the remaining goals. n is
+;; the depth limit (n = -1 means unbounded, for the toy interpreter); k is the
+;; fresh-variable counter threaded through renamerule.
 (define (backchain rules n k env goals)
   (match goals
     ['() env]
@@ -44,6 +48,9 @@
             (backchain rules (- n 1) k* (unify-literals env (cons (cdr rc) g)) (append (car rc) gs)))
           rules))]))
 
+;; turn a clause into a Horn rule (body . head): the negative literals become the
+;; body (negated back to positive), and the single positive literal is the head
+;; (or #f for a goal/negative clause). Errors if the clause has >1 positive literal.
 (define (hornify cls)
   (define-values (pos neg) (partition positive cls))
   (if (> (length pos) 1)

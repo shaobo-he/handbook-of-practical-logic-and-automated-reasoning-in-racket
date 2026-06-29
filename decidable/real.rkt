@@ -75,6 +75,11 @@
          rest)]
     [_ ps]))
 
+;; Fill in the sign of each polynomial on the open intervals between its roots,
+;; given the signs at the roots themselves. Walking consecutive (left, right)
+;; sample signs: equal nonzero signs persist across the interval; opposite signs
+;; force a zero crossing, so a 'zero point is spliced in between. 'nonzero or two
+;; adjacent zeros mean the sample data is inconsistent and should never occur.
 (define (inferisign ps)
   (match ps
     [`(,(and x (cons l ls)) (,_ . ,ints) . ,(and pts (cons (cons r rs) xs)))
@@ -91,6 +96,11 @@
               (cons (cons l ints) (cons (cons 'zero ints) (cons (cons r ints) (inferisign pts)))))])]
     [_ ps]))
 
+;; Derive the sign matrix for a set of polynomials from the matrix for the larger
+;; set {derivative + remainders, originals}. l is half the row length: each row
+;; holds the q-signs in its first half and the p-derived signs in its second.
+;; inferpsign reads off the sign of each original poly, inferisign then fills the
+;; inter-root intervals, and the trailing column bookkeeping is dropped.
 (define (dedmatrix cont mat)
   (define l (quotient (length (car mat)) 2))
   (define mat1
@@ -128,6 +138,11 @@
   (split-zero sgns pol cont-z (λ (s) (split-sign s pol cont-pn))))
 
 ;; ===== recursive sign-matrix evaluation =====
+;; Process the polynomial list one at a time, case-splitting on the sign of each
+;; head coefficient (split-trichotomy). dun accumulates polynomials already fixed
+;; as nonzero; the zero-branch recurses on (behead p) since the leading term
+;; vanishes, the nonzero-branch keeps p at full degree. When pols is empty the
+;; accumulated set is handed to `matrix` to build the actual sign matrix.
 (define (casesplit vars dun pols cont sgns)
   (match pols
     ['() (matrix vars dun cont sgns)]
@@ -147,6 +162,10 @@
     (cont (map (λ (row) (insertat (length dun) (findsign sgns p) row)) m)))
   (casesplit vars dun ops cont* sgns))
 
+;; Build the sign matrix for `pols` (Cohen-Hormander). Pick a highest-degree
+;; polynomial p, form its derivative p* and pseudo-divide every other poly by p
+;; to get remainders gs of lower degree; recursively get the matrix for
+;; {p*, others, gs}, from which p's own sign column is reconstructed (insertat i).
 (define (matrix vars pols cont sgns)
   (if (null? pols)
       (with-handlers ([exn:fail? (λ (e) #f)])

@@ -21,6 +21,10 @@
 (provide (all-defined-out))
 
 ;; ===== propositional interpolation =====
+;; For unsatisfiable p /\ q, build an interpolant in their shared vocabulary by
+;; existentially projecting away each atom of p not occurring in q. orify does one
+;; such projection (Shannon expansion: OR of the two cofactors r[a:=0], r[a:=1]),
+;; which only weakens the formula, so p => result stays valid.
 (define (pinterpolate p q)
   (define (orify a r)
     `(or ,(psubst (update a #f undefined) r) ,(psubst (update a #t undefined) r)))
@@ -47,6 +51,9 @@
   (pinterpolate (list-conj (setify ps)) (list-conj (setify qs))))
 
 ;; ===== topmost terms over a set of function symbols =====
+;; Collect the outermost subterms whose head symbol is in fns (recursion stops at
+;; the first matching layer and does not descend into it). uinterpolate uses these
+;; to decide which subterms must be quantified away from a relational interpolant.
 (define (toptermt fns tm)
   (match tm
     [`(var ,x) '()]
@@ -65,6 +72,10 @@
 (define (uinterpolate p q)
   (define fp (functions p))
   (define fq (functions q))
+  ;; Replace each alien topmost term by a fresh variable v_n and bind it: with an
+  ;; exists if its symbol came from p (so it may be witnessed), with a forall if it
+  ;; came from q (so it must be eliminated). This rebuilds the interpolant in the
+  ;; shared vocabulary with the correct quantifier polarity.
   (define (simpinter tms n c)
     (match tms
       ['() c]
@@ -91,6 +102,9 @@
     [`(and ,p* ,q*) (uinterpolate p* q*)]))
 
 ;; ===== fully general formulas =====
+;; Replace the shared free variables by fresh constants c_i (fn-vc) before
+;; interpolating -- cinterpolate needs p and q to share no free variables -- then
+;; map those constants back to the original variables (fn-cv) in the result.
 (define (interpolate p q)
   (define vs (map (λ (v) `(var ,v)) (intersect (fv p) (fv q))))
   (define fns (functions `(and ,p ,q)))

@@ -53,11 +53,18 @@
     (jfn (cons (imp-trans-chain (list thp thq) (and-pair p q)) rest)))
   (goals (cons (cons asl p) (cons (cons asl q) gls)) jfn*))
 
+;; Wrap a justification so that the theorem transformation tfn is applied to the
+;; FIRST subgoal theorem (the one a tactic just changed) while the rest are
+;; passed through unchanged. This is the common plumbing by which a tactic edits
+;; the proof of the subgoal it acted on.
 (define (jmodify jfn tfn)
   (λ (ths)
     (match-define `(,th . ,oths) ths)
     (jfn (cons (tfn th) oths))))
 
+;; Like gen-right (generalise over y) but then alpha-converts the freshly bound y
+;; back to the original name x, so forall-intro-tac restores the goal's own
+;; variable name rather than the temporary one introduced for soundness.
 (define (gen-right-alpha y x th)
   (define th1 (gen-right y th))
   (imp-trans th1 (alpha x (consequent (concl th1)))))
@@ -69,6 +76,9 @@
       (goals (cons (cons asl (subst (update x `(var ,y) undefined) p)) gls)
              (jmodify jfn (λ (th) (gen-right-alpha y x th))))))
 
+;; Builds a proof of (exists x. p) from a proof of p[x:=t]: the kernel operation
+;; underlying exists-intro-tac. It works through the encoding
+;; (exists x. p) = ~(forall x. ~p), specialising that universal at t.
 (define (right-exists x t p)
   (define th (contrapos (ispec t `(forall ,x (not ,p)))))
   (define p*
@@ -168,6 +178,9 @@
           (imp-unduplicate (imp-trans th (exists-left x (shunt pth)))))
         (goals (cons (cons (cons (cons l p) asl) w) gls) (jmodify jfn jfn*)))))
 
+;; From  |- p -> r  and  |- q -> r  build  |- (p \/ q) -> r  (the case-split used
+;; by disj-elim-tac). Since \/ is encoded via negation, the proof goes through the
+;; contrapositives ~r -> ~p and ~r -> ~q and a double-negation elimination.
 (define (ante-disj th1 th2)
   (match-define `(,p . ,r) (dest-imp (concl th1)))
   (match-define `(,q . ,s) (dest-imp (concl th2)))
@@ -186,10 +199,16 @@
   (goals (cons (cons (cons (cons l p) asl) w) (cons (cons (cons (cons l q) asl) w) gls)) jfn*))
 
 ;; ===== declarative layer =====
+;; Shuffle the first i conjoined assumptions of a sequent into curried position
+;; (imp-swap + repeated shunt), then re-fold the remainder (repeated unshunt);
+;; used by `assume` to discharge several labelled assumptions at once.
 (define (multishunt i th)
   (define th1 (imp-swap (funpow i (λ (t) (imp-swap (shunt t))) th)))
   (imp-swap (funpow (- i 1) (λ (t) (unshunt (imp-front 2 t))) th1)))
 
+;; assume expects the current goal to be (imp P Q) where P is exactly the
+;; conjunction of the assumption values in lps; it moves those into the
+;; assumption list and rewires the justification with multishunt.
 (define (assume lps g)
   (match-define (goals (cons (cons asl `(imp ,p ,q)) gls) jfn) g)
   (if (not (equal? (end-itlist mk-and (map cdr lps)) p))

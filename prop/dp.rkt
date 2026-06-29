@@ -27,6 +27,8 @@
 (provide (all-defined-out))
 
 ;; ===== DP rules (each returns the new clause set, or #f if inapplicable) =====
+;; pick any unit clause (u); u must be true, so every clause containing u is
+;; satisfied (dropped) and ~u is removed from the clauses that remain.
 (define (one-literal-rule clauses)
   (define unit (findf (λ (cl) (= (length cl) 1)) clauses))
   (and unit
@@ -52,6 +54,9 @@
   (define res0 (allpairs union pos* neg*))
   (union other (filter (non trivial) res0)))
 
+;; net change in clause count from resolving on l: the m*n resolvents minus the
+;; m+n source clauses deleted. resolution-rule picks the literal minimising this,
+;; to keep the clause set from proliferating.
 (define (resolution-blowup cls l)
   (define m (length (filter (λ (cl) (member l cl)) cls)))
   (define n (length (filter (λ (cl) (member (negate l) cl)) cls)))
@@ -114,6 +119,10 @@
 (define (unassigned cls trail)
   (subtract (unions (image (λ (cl) (image litabs cl)) cls)) (image (λ (e) (litabs (car e))) trail)))
 
+;; fixed-point unit propagation: drop falsified literals, collect clauses that
+;; have become unit, add their literals to `assigned` (a set of true literals)
+;; and to `trail` (the ordered decision history, as 'deduced), then repeat until
+;; no new units appear.
 (define (unit-subpropagate cls assigned trail)
   (define cls* (map (λ (cl) (filter (λ (l) (not (set-member? assigned (negate l)))) cl)) cls))
   (define newunits
@@ -131,6 +140,8 @@
   (define-values (cls* assigned* trail*) (unit-subpropagate cls assigned trail))
   (values cls* trail*))
 
+;; pop deduced literals off the front of the trail, exposing the most recent
+;; 'guessed decision (the level to flip when a conflict is hit)
 (define (backtrack trail)
   (match trail
     [`((,_ . deduced) . ,tt) (backtrack tt)]
@@ -171,6 +182,9 @@
      (match (backtrack trail)
        [`((,p . guessed) . ,tt)
         (define trail** (backjump cls p tt))
+        ;; learn a conflict clause: the negation of the decisions (the guessed
+        ;; literals plus p) that led here, so this exact assignment is blocked
+        ;; from being re-tried
         (define declits (filter (λ (e) (eq? (cdr e) 'guessed)) trail**))
         (define conflict (insert (negate p) (image (λ (e) (negate (car e))) declits)))
         (dplb (cons conflict cls) (cons (cons (negate p) 'deduced) trail**))]

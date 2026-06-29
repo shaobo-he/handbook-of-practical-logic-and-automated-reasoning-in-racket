@@ -44,6 +44,8 @@
   (define fm2 (maincnf q defs counter))
   (define fm* (op fm1 fm2))
   (cond
+    ;; memoise on the rebuilt subformula fm* (after replacing p,q with their
+    ;; variables), so identical subformulas reuse one definition variable
     [(hash-ref defs fm* #f)
      =>
      car]
@@ -55,16 +57,24 @@
 ;; ===== overall definitional CNF =====
 (define (mk-defcnf fn fm)
   (define fm* (nenf fm))
+  ;; start the fresh-variable counter past the largest p_<k> already present, so
+  ;; generated variables can never collide with an input atom of that shape
   (define counter (box (add1 (overatoms (λ (a acc) (max acc (var-index "p_" a))) fm* 0))))
   (define defs (make-hash))
   (define fm** (fn fm* defs counter))
   (define deflist (map cdr (hash-values defs)))
+  ;; the clause set is the main formula's clauses plus every definition's,
+  ;; merged into one set (the format the DP/DPLL procedures consume)
   (unions (cons (simpcnf fm**) (map simpcnf deflist))))
 
 (define (defcnf-orig fm)
   (list-conj (map list-disj (mk-defcnf maincnf fm))))
 
 ;; ===== version that exploits the initial /\ \/ structure =====
+;; andcnf/orcnf descend through the formula's outer /\ and \/ layers without
+;; introducing a definition variable for them (only maincnf, reached at the
+;; first non-and/or node, does). This yields far fewer variables and clauses
+;; than defcnf-orig while staying equisatisfiable.
 (define (subcnf sfn op p q defs counter)
   (define fm1 (sfn p defs counter))
   (define fm2 (sfn q defs counter))

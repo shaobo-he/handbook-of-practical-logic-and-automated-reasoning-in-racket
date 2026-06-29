@@ -20,6 +20,9 @@
   (or (findf pred l) (error 'list-find "find")))
 
 ;; ===== Brand's S modification (symmetrize equations) =====
+;; tryfind locates one equation s=t in the clause; we recurse on the rest and
+;; emit both orientations (s=t and t=s) into every resulting clause. The handler
+;; fires when no equation remains, terminating the recursion with the clause as-is.
 (define (modify-S cl)
   (with-handlers ([exn:fail? (λ (e) (list cl))])
     (define st (tryfind dest-eq cl))
@@ -31,6 +34,9 @@
     (append (map (λ (c) (insert eq1 c)) sub) (map (λ (c) (insert eq2 c)) sub))))
 
 ;; ===== Brand's T modification (flatten equation right-hand sides) =====
+;; Each equation s=t is replaced by  (not t=w), s=w  for a fresh w (variant 'w
+;; avoids capture against the variables of the rest of the clause). Non-equation
+;; literals are passed through; equations are handled before the other literals.
 (define (modify-T cl)
   (match cl
     ['() '()]
@@ -67,6 +73,10 @@
 (define (replace rfn fm)
   (onformula (λ (t) (replacet rfn t)) fm))
 
+;; Repeatedly abstract one non-variable proper subterm t into a fresh variable w,
+;; replacing every occurrence and adding the side literal (not t=w); fvs threads
+;; the in-use variables so each w is fresh. The handler ends the loop when
+;; find-nvsubterm raises (no non-variable subterm is left to abstract).
 (define (emodify fvs cls)
   (with-handlers ([exn:fail? (λ (e) cls)])
     (define t (tryfind find-nvsubterm cls))
@@ -78,12 +88,17 @@
   (emodify (foldr (λ (c acc) (union (fv c) acc)) '() cls) cls))
 
 ;; ===== overall Brand transformation =====
+;; Apply E then S then T, and always prepend the reflexivity clause x=x: with
+;; equality replaced by a plain predicate, MESON needs this as its base fact.
 (define (brand cls)
   (define cls1 (map modify-E cls))
   (define cls2 (foldr (λ (c acc) (union (modify-S c) acc)) '() cls1))
   (cons (list (mk-eq '(var x) '(var x))) (map modify-T cls2)))
 
 ;; ===== MESON with the Brand transformation =====
+;; Brand-transform the CNF clauses, turn them into contrapositive rules, and run
+;; the model-elimination core (mexpand002) inside deepen, which iteratively raises
+;; the depth bound until a proof is found.
 (define (bpuremeson fm)
   (define cls (brand (simpcnf (specialize (pnf fm)))))
   (define rules (foldr (λ (c acc) (append (contrapositives c) acc)) '() cls))

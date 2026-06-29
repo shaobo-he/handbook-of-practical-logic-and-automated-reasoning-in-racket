@@ -29,6 +29,9 @@
     [`(((var ,x) . ,t) . ,oth) (unify-var env x t oth)]
     [`((,t . (var ,x)) . ,oth) (unify-var env x t oth)]))
 
+;; bind x := t. If x is already bound, re-unify its existing value against t
+;; instead of overwriting; otherwise add the binding unless it is trivial. The
+;; istriv call is the occurs-check that rejects cyclic bindings.
 (define (unify-var env x t oth)
   (if (defined env x)
       (unify env (cons (cons (apply env x) t) oth))
@@ -37,7 +40,9 @@
                  (update x t env))
              oth)))
 
-;; normalize a (triangular) env to an idempotent substitution
+;; normalize a (triangular) env to an idempotent substitution: repeatedly
+;; substitute the env into its own range until it stops changing. One pass is
+;; not enough because a binding x:=y, y:=t only becomes x:=t after y is resolved.
 (define (solve env)
   (define env* (mapf (λ (t) (tsubst env t)) env))
   (if (equal? env* env)

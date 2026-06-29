@@ -23,6 +23,9 @@
   (define sfm (skolemize `(not ,fm)))
   (define fvs (fv sfm))
   (define-values (cnsts funcs) (partition (λ (fa) (= (cdr fa) 0)) (functions sfm)))
+  ;; Genuine (arity > 0) function symbols take us outside the AE fragment: the
+  ;; Herbrand universe is then infinite, so enumerating ground instances no
+  ;; longer terminates as a decision procedure. Reject rather than loop.
   (if (not (null? funcs))
       (error 'aedecide "Not decidable")
       (let ()
@@ -45,6 +48,9 @@
     [(null? no) `(exists ,x ,(list-conj yes))]
     [else `(and (exists ,x ,(list-conj yes)) ,(list-conj no))]))
 
+;; Push (exists x) inward as far as possible. Putting the body in DNF lets the
+;; existential distribute over the disjuncts; `separate` then moves it past every
+;; conjunct of a disjunct that does not mention x.
 (define (pushquant x p)
   (if (not (member x (fv p)))
       p
@@ -110,6 +116,9 @@
   (define pints (alldepmappings (predicates fm) (λ (k) (allpredicates dom k))))
   (define interps (allpairs (λ (f p) (list dom f p)) fints pints))
   (define fm* (generalize fm))
+  ;; An interpretation md is (domain fun-interp pred-interp). The interp maps a
+  ;; symbol to its denotation (itself a function of the argument tuple), so we
+  ;; apply twice: first the symbol, then its argument tuple.
   (andmap (λ (md)
             (holds (car md)
                    (λ (fsym args) (((cadr md) fsym) args))
@@ -145,4 +154,7 @@
   (define-values (monadic other) (partition (λ (pa) (= (cdr pa) 1)) preds))
   (if (or (not (null? funcs)) (ormap (λ (pa) (> (cdr pa) 1)) other))
       (error 'decide-monadic "Not in the monadic subset")
+      ;; A satisfiable monadic formula with k unary predicates has a model of
+      ;; size <= 2^k (one element per truth-assignment to the k predicates), so
+      ;; checking all models up to that size is complete. 2^k = (funpow k (*2) 1).
       (decide-finite (funpow (length monadic) (λ (x) (* 2 x)) 1) fm)))

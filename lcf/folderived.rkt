@@ -23,6 +23,10 @@
   (define th2 (modusponens (imp-swap th1) (axiom-eqrefl u)))
   (imp-trans (eq-sym s t) th2))
 
+;; Derives  s=t -> stm=ttm  by structural induction on the two terms: where they
+;; already agree, only the trivial s=t hypothesis is needed; where both are
+;; applications of the same function, recurse on the arguments and combine the
+;; resulting equalities with the funcong axiom.
 (define (icongruence s t stm ttm)
   (cond
     [(equal? stm ttm) (add-assum (mk-eq s t) (axiom-eqrefl stm))]
@@ -47,6 +51,9 @@
   (match-define `(,p . ,q) (dest-imp (concl th)))
   (modusponens (gen-right-th x p q) (gen x th)))
 
+;; The left-elimination rule for the existential:  (exists x. p) -> (p -> q) -> q
+;; (with x not free in q). exists is reduced to ~(forall x. ~p), so the proof
+;; chains genimp, gen-right and double-negation over that encoding.
 (define (exists-left-th x p q)
   (define p* `(imp ,p #f))
   (define q* `(imp ,q #f))
@@ -78,6 +85,11 @@
          (gen-right y (subspec th)))]
     [_ (error 'subalpha "wrong sort of theorem")]))
 
+;; Core substitution rule: derive  s=t -> (sfm -> tfm)  where tfm is sfm with some
+;; occurrences of s replaced by t. It recurses structurally: atoms use predcong,
+;; implications flip the equality direction on the antecedent, matching
+;; quantifiers alpha-convert through a fresh variable, and remaining connectives
+;; are first expanded away to their primitive form.
 (define (isubst s t sfm tfm)
   (if (equal? sfm tfm)
       (add-assum (mk-eq s t) (imp-refl tfm))
@@ -115,6 +127,9 @@
      (subalpha (isubst `(var ,x) `(var ,z) p p*))]
     [_ (error 'alpha "not a universal formula")]))
 
+;; Instantiate (forall x. p) at the term t. If t mentions x, first alpha-convert
+;; the bound variable to a fresh name to avoid capturing t's own variables, then
+;; specialise; otherwise apply the substitution rule directly.
 (define (ispec t fm)
   (match fm
     [`(forall ,x ,p)

@@ -40,7 +40,9 @@
 (define (conjoin f l)
   (list-conj (map f l)))
 
-;; index functions are curried procedures over ints
+;; index functions are curried procedures over ints: (mk-index "x") is a unary
+;; fn with (... i) = atom x_i, and (mk-index2 "u") is a binary fn with
+;; ((... i) j) = atom u_i_j. The indexed atom symbols are built on demand.
 (define ((mk-index x) i)
   `(atom ,(string->symbol (string-append x "_" (number->string i)))))
 (define (((mk-index2 x) i) j)
@@ -50,6 +52,10 @@
 (define (ripplecarry x y c out n)
   (conjoin (λ (i) (fa (x i) (y i) (c i) (out i) (c (+ i 1)))) (range 0 n)))
 
+;; ripplecarry0/1 wrap ripplecarry with a carry-in index function that overrides
+;; bit 0 with the constant #f / #t (the lambda lets us plug a fixed carry-in
+;; while still deferring to c for the internal carries); psimplify then folds
+;; those constants away.
 (define (ripplecarry0 x y c out n)
   (psimplify (ripplecarry x
                           y
@@ -76,6 +82,12 @@
 (define ((offset n x) i)
   (x (+ n i)))
 
+;; carry-select adder: process the inputs in blocks of k bits. Each block is
+;; computed twice in parallel -- once assuming carry-in 0 (ripplecarry0) and once
+;; assuming carry-in 1 (ripplecarry1) -- and a mux picks the right result from
+;; the previous block's actual carry-out. k* = min n k handles a final short
+;; block (k* < k), where the recursion stops; otherwise it recurses on the
+;; remaining bits offset by k.
 (define (carryselect x y c0 c1 s0 s1 c s n k)
   (define k* (min n k))
   (define fm
@@ -116,6 +128,12 @@
                       (w (- i 1))))
                 n))
 
+;; naive shift-and-add multiplier of two n-bit numbers whose partial-product
+;; bits are supplied by x (x i j = bit i of operand 1 AND bit j of operand 2).
+;; n=1: the product is the single AND bit (out 0), and out 1 is forced false.
+;; n=2: two rippleshift-free output bits taken straight from u_2. n>=2: chain
+;; rippleshift stages through the u_k carry/partial rows. psimplify removes the
+;; constant-#f wires introduced at the row boundaries.
 (define (multiplier x u v out n)
   (if (= n 1)
       `(and (iff ,(out 0) ,((x 0) 0)) (not ,(out 1)))
@@ -152,6 +170,9 @@
       (= (modulo x 2) 1)
       (bit (- n 1) (quotient x 2))))
 
+;; assert that the n index variables x_0..x_{n-1} spell out the binary digits of
+;; the constant m: x_i is asserted where bit i of m is 1, negated where it is 0.
+;; Used by `prime` to pin the multiplier's output to the candidate p.
 (define (congruent-to x m n)
   (conjoin (λ (i)
              (if (bit i m)

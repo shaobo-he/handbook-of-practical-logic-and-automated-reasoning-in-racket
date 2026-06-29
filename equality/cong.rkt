@@ -41,6 +41,11 @@
 
 ;; ===== merge two terms, propagating congruence closure =====
 ;; state is (eqv . pfn) where pfn maps a term to its known predecessors
+;; (the compound terms in which it appears as an argument).
+;; Merge s and t (via equate), then look at the predecessors of their old class
+;; representatives: any two predecessors that have now become congruent must
+;; themselves be merged, so we recurse on every such pair. This propagation is
+;; what makes congruence closure more than a plain union-find.
 (define (emerge st eqvpfn)
   (define s (car st))
   (define t (cdr st))
@@ -68,6 +73,11 @@
     [`(fn ,f ,@a) (foldr (λ (s acc) (update s (insert t (tryapplyl acc s)) acc)) pfn (setify a))]
     [_ pfn]))
 
+;; Decide satisfiability of a conjunction of ground equations/inequations:
+;; (1) split into positive equations and negated ones; (2) build the predecessor
+;; graph over all subterms; (3) compute the congruence closure of the positive
+;; equations via emerge; (4) the set is satisfiable iff no asserted inequation
+;; has both sides in the same congruence class.
 (define (ccsatisfiable fms)
   (define-values (pos neg) (partition positive fms))
   (define eqps (map dest-eq pos))

@@ -50,6 +50,9 @@
      (pullq #f #t fm qt o y y p q)]
     [_ fm]))
 
+;; float one quantifier qf out of (o p q). l/r say which side carries a bound
+;; variable to rename onto the fresh z (variant of x avoiding fm's free vars):
+;; l=#t renames x in p, r=#t renames y in q. Then recurse to pull more.
 (define (pullq l r fm qf o x y p q)
   (define z (variant x (fv fm)))
   (define p^
@@ -78,6 +81,9 @@
     (values `(,o ,p^ ,q^) fns^^))
   (match fm
     [`(exists ,y ,p)
+     ;; the Skolem term depends on the enclosing universals = free vars of fm;
+     ;; name it c_y (a constant) when there are none, else f_y (a function), and
+     ;; use variant against the already-used `fns` to keep names distinct
      (define xs (fv fm))
      (define f
        (variant (if (null? xs)
@@ -92,6 +98,9 @@
     [`(,(and o (or 'and 'or)) ,p ,q) (skolem2 o p q fns)]
     [_ (values fm fns)]))
 
+;; Skolemize after simplify+NNF (but without prenexing/specializing). `functions`
+;; returns (name . arity) pairs, so `map car` gives the bare symbols already in
+;; use, which seed `skolem`'s avoid-list so Skolem names never clash with them.
 (define (askolemize fm)
   (define-values (f _) (skolem (nnf (simplify fm)) (map car (functions fm))))
   f)

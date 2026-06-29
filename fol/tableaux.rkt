@@ -63,6 +63,9 @@
         [`((or ,p ,q) . ,unexp)
          (tableau (cons p unexp) lits n (λ (env k) (tableau (cons q unexp) lits n cont env k)) env k)]
         [`((forall ,x ,p) . ,unexp)
+         ;; instantiate with a fresh var, but append the original (forall x p) back
+         ;; onto the queue so it can be re-instantiated later; n bounds the number
+         ;; of such instantiations (it is an instantiation count, not formula depth)
          (define y `(var ,(string->symbol (string-append "_" (number->string k)))))
          (define p* (subst (update x y undefined) p))
          (tableau (cons p* (append unexp (list `(forall ,x ,p)))) lits (sub1 n) cont env (add1 k))]

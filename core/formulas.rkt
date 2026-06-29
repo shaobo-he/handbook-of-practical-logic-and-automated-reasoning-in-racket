@@ -94,13 +94,17 @@
     [`(,(or 'forall 'exists) ,x ,p) (overatoms f p b)]
     [_ b]))
 
+;; collect (f atom) over every atom, deduplicated. setify is needed because
+;; the same atom can occur many times in fm (e.g. (and (atom p) (atom p))).
 (define (atom-union f fm)
   (setify (overatoms (λ (h t) (append (f h) t)) fm '())))
 
 ;; ===== pretty printer =====
 ;; Produces the usual ASCII logic syntax: ~ /\ \/ ==> <=> forall exists.
 
-;; collect a run of like quantifiers: (forall x (forall y p)) -> ((x y), p)
+;; collect a run of like quantifiers: (forall x (forall y p)) -> ((x y), p).
+;; The (eq? Q Q2) guard requires the nested quantifier to be the SAME kind,
+;; so a switch (forall x (exists y p)) stops the run, returning ((x), (exists y p)).
 (define (strip-quant fm)
   (match fm
     [`(,(and Q (or 'forall 'exists)) ,x ,(and yp (list Q2 _ _)))
@@ -128,6 +132,10 @@
       [`(iff ,p ,q) (br (> pr 2) (infix 2 "<=>" p q))]
       [`(forall ,x ,p) (br (> pr 0) (qnt "forall" fm))]
       [`(exists ,x ,p) (br (> pr 0) (qnt "exists" fm))]))
+  ;; print a binary connective at precedence newpr. The left operand is
+  ;; printed at (add1 newpr) and the right at newpr, so a same-connective
+  ;; chain a op b op c brackets to the left -- matching the right-associative
+  ;; AST a op (b op c) by parenthesising the nested right operand only.
   (define (infix newpr sym p q)
     (string-append (go (add1 newpr) p) " " sym " " (go newpr q)))
   (define (qnt name fm)

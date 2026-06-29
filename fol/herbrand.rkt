@@ -18,10 +18,15 @@
 (define herbrand-verbose (make-parameter #f))
 
 ;; ===== propositional valuation of a first-order atom set =====
+;; evaluate fm propositionally, treating each whole atom (atom (rel ...)) as an
+;; opaque propositional letter looked up in d -- quantifiers/domains are ignored
 (define (pholds d fm)
   (eval fm (λ (p) (d `(atom ,p)))))
 
 ;; ===== Herbrand universe: constants and functions =====
+;; split the function symbols into constants (arity 0) and proper functions. If
+;; there are no constants we invent one, (c . 0), so the Herbrand universe is
+;; non-empty (otherwise no ground terms could be built).
 (define (herbfuns fm)
   (define-values (cns fns) (partition (λ (fa) (= (cdr fa) 0)) (functions fm)))
   (if (null? cns)

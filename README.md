@@ -26,7 +26,7 @@ fol/         fol skolem herbrand unif tableaux resolution prolog meson skolems
 equality/    equal cong rewrite order completion eqelim paramodulation
 decidable/   decidable qelim cooper complex real grobner geom interpolation combining
 lcf/         lcf lcfprop folderived lcffol tactics limitations
-tests/       one <name>-test.rkt per group
+tests/       <name>-test.rkt unit suites; property/ holds the rackcheck suite
 ```
 
 Modules in the same directory `require` each other by bare name; cross-directory
@@ -82,49 +82,60 @@ The `File` column gives the path under the directory shown in the layout above.
 Substitutions / finite partial functions are immutable hashes from variable
 name to term.
 
-Tests (run `racket tests/<file>-test.rkt`): `prop`, `fol`, `dp`, `unif`, `herbrand`,
-`provers` (tableaux/resolution/prolog/meson), `equality` (equal/cong/rewrite/order),
-`completion` (completion/eqelim/paramodulation/skolems),
-`extras` (intro/propexamples/stal/bdd), `decidable` (decidable/qelim/cooper/
-complex/real/grobner), `chapter5b` (geom/interpolation/combining),
-`lcf` (lcf/lcfprop/folderived/lcffol/tactics/limitations),
-`pelletier` (a selection of Pelletier's problems run through the provers).
+Unit tests live in `tests/*-test.rkt`, mostly one per module (run an individual
+file with `racket tests/<file>-test.rkt`): `lib`, `formulas`, `intro`, `prop`,
+`defcnf`, `dp`, `stal`, `bdd`, `propexamples`, `fol`, `unif`, `skolem`, `herbrand`,
+`tableaux`, `resolution`, `prolog`, `meson`, `skolems`, `provers`
+(tableaux/resolution/prolog/meson), `pelletier` (Pelletier's problems through the
+provers), `equality` (equal/cong/rewrite/order), `completion`
+(completion/eqelim/paramodulation), `decidable`, `chapter5b`
+(geom/interpolation/combining), `lcf`, `lcf-kernel`, `lcf-prover`,
+`lcf-limitations`, and `extras`.
 
-Run the whole suite with `raco test tests/` (508 checks) — this recurses into
-`tests/property/` and includes the property suite.
+Run the whole suite with `raco test tests/` (1573 checks) — this recurses into
+`tests/property/` and includes the property suite. CI runs only the `*-test.rkt`
+unit suite (1300 checks); the `tests/property/` suite is local-only (it needs the
+extra `rackcheck` package).
 
 The `tests/property/` directory holds the
-[rackcheck](https://docs.racket-lang.org/rackcheck/) property-based tests: one
-`<chapter>-props.rkt` file per chapter group sharing a `common.rkt` of generators,
-oracles, and configs. ~110 properties (most run 1500 random cases) span every
+[rackcheck](https://docs.racket-lang.org/rackcheck/) property-based tests: a
+`*-props.rkt` file per module group, all sharing a `common.rkt` of generators,
+oracles, and configs. 273 properties (most run 400–1500 random cases) span every
 chapter, checking each function against a trusted oracle or its defining law:
 
 - **lib/formulas/intro** — set/union-find axioms (commutativity, associativity,
-  absorption, transitivity), finite-partial-function laws, constructor/destructor
-  round-trips, and that the expression simplifier and parse∘print preserve value.
+  absorption, transitivity), finite-partial-function and `valmod` laws,
+  subset/power-set/`allsets` cardinalities, constructor/destructor round-trips, and
+  that the expression simplifier, parser precedence, and parse∘print preserve value.
 - **propositional/SAT** — every tautology checker (`tautology`/`bddtaut`/`ebddtaut`/
   `dptaut`/`dplltaut`/`dplbtaut`) and satisfiability checker agree with the
   truth-table oracle; NNF/NENF/DNF/CNF/`psimplify` preserve meaning; `eval` is a
-  homomorphism; `dual` is involutive; Stålmarck is sound; `prime`/`ramsey`/adders
-  match `prime?`, R(3,3)=6, and validity.
+  homomorphism; `dual` is involutive; Stålmarck is sound; the DP/DPLL rules
+  (unit/pure-literal/resolution) preserve satisfiability; definitional CNF
+  (`defcnf`/`defcnf3`) is equisatisfiable with 3-CNF clause bounds; `prime`/`ramsey`/
+  adders/`bit`/`bitlength` match `prime?`, R(3,3)=6, validity, and native arithmetic.
 - **BDD** — canonicity (equal nodes ⟺ logical equivalence), the diagram evaluates
   to the truth table, complement-edge negation, and the `bdd-and/or/imp/iff`
   combinators match formula construction.
 - **first-order** — `simplify`/`nnf`/`prenex`/`pnf` preserve truth in random finite
-  models; unification is sound, symmetric, and idempotent; MESON/tableaux prove
-  every propositional tautology.
+  models and are idempotent; unification is sound, symmetric, and idempotent;
+  `herbrand` ground terms stay ground; Skolemization removes existentials;
+  MESON/tableaux/resolution/prolog prove propositional tautologies.
 - **equality/ordering** — LPO is a strict order with the subterm property; rewriting
-  computes the right number; congruence closure decides ground equational validity.
+  computes the right number and is idempotent; congruence closure decides ground
+  equational validity; completion's `renamepair`/`normalize-and-orient`/`interreduce`
+  invariants hold; paramodulation proves reflexivity/symmetry/transitivity/congruence.
 - **decidable theories** — the `complex`/`grobner`/`real` polynomial rings satisfy
-  the ring/derivative laws (commutativity, distributivity, product rule); QE
-  decides ground (in)equalities; DLO QE eliminates all quantifiers; `grobner-decide`
-  confirms field congruences.
-- **LCF/limitations** — kernel-derived rules produce the expected theorems;
+  the ring/derivative laws (commutativity, distributivity, product rule); Cooper
+  linear-arithmetic and monomial-order laws hold; QE decides ground (in)equalities;
+  DLO QE eliminates all quantifiers; `grobner-decide` confirms field congruences;
+  `alltuples`/`allmappings` cardinalities, Craig interpolation, and `homogenize`
+  free-variable preservation hold.
+- **LCF/limitations** — kernel-derived rules produce the expected theorems and the
+  axiom-scheme side conditions hold exactly when their variable conditions do;
   `lcftaut` succeeds exactly on tautologies; `robeval`/`dholds`/`dtermval` agree
-  with native arithmetic; Gödel numbering is injective; the Turing tape round-trips.
-
-It needs the extra `rackcheck` package (`raco pkg install rackcheck`) and is run
-locally only — CI runs every suite except this one.
+  with native arithmetic; Gödel numbering (`pair`/`gterm`/`gform`) is injective; the
+  Turing tape round-trips.
 
 ## Status
 

@@ -50,6 +50,10 @@
   (map (λ (cl) (subst (fpf fvs vvs) cl)) cls))
 
 ;; ===== general resolution rule, with factoring (Robinson) =====
+;; To resolve on literal p of cl1: collect the literals of cl2 that unify with
+;; ~p (ps2) and the other literals of cl1 that unify with p (ps1). Factoring then
+;; resolves any subset of {p}∪ps1 against any non-empty subset of ps2 at once,
+;; unifying them all via one mgu — hence the allsubsets/allnonemptysubsets pairing.
 (define (resolvents cl1 cl2 p acc)
   (define ps2 (filter (λ (q) (unifiable (negate p) q)) cl2))
   (if (null? ps2)
@@ -138,6 +142,9 @@
          (cons cl cls)
          (cons c (replace cl cls)))]))
 
+;; add a new clause cl to the unused list, but drop it if it is useless: a
+;; tautology, or subsumed by the just-used clause gcl or by some existing unused
+;; clause. Otherwise insert it, removing any unused clauses it subsumes (replace).
 (define (incorporate gcl cl unused)
   (if (or (trivial cl) (ormap (λ (c) (subsumes-clause c cl)) (cons gcl unused)))
       unused

@@ -15,7 +15,9 @@
 
 (provide (all-defined-out))
 
-;; eliminate exists x over a conjunction, given a basic elim procedure bfn
+;; Eliminate (exists x) over a conjunction, given a basic elimination procedure
+;; bfn that handles (exists x . conjunction-all-mentioning-x). We split p's
+;; conjuncts: those mentioning x go to bfn, the rest are simply re-conjoined.
 (define (qelim bfn x p)
   (define cjs (conjuncts p))
   (define-values (ycjs ncjs) (partition (λ (c) (member x (fv c))) cjs))
@@ -50,6 +52,9 @@
       [`(iff ,p ,q) `(or (and ,(rec p) ,(rec q)) (and ,(rec `(not ,p)) ,(rec `(not ,q))))]
       [`(not (not ,p)) (rec p)]
       [`(not (and ,p ,q)) `(or ,(rec `(not ,p)) ,(rec `(not ,q)))]
+      ;; Special case for ~((p /\ q) \/ (~p /\ r)), i.e. the negation of an
+      ;; if-then-else. Naive De Morgan would duplicate p and r and blow up; this
+      ;; factorisation rewrites it directly to (p /\ ~q) \/ (~p /\ ~r).
       [`(not (or (and ,p ,q) (and ,p2 ,r)))
        #:when (equal? p2 (negate p))
        `(or ,(rec `(and ,p (not ,q))) ,(rec `(and ,p2 (not ,r))))]
@@ -66,6 +71,11 @@
     [`(not (atom (rel = ,s ,t))) `(or (atom (rel < ,s ,t)) (atom (rel < ,t ,s)))]
     [_ fm]))
 
+;; Eliminate (exists x) from a conjunction of literals over a dense linear order.
+;; Three cases: (1) an equality x = t lets us substitute t for x in the rest;
+;; (2) a literal x < x is contradictory, so the whole thing is #f; (3) otherwise
+;; x sits strictly between every lower bound and every upper bound, and density
+;; guarantees a witness exists, so we emit the cross product of (lower < upper).
 (define (dlobasic fm)
   (match fm
     [`(exists ,x ,p)

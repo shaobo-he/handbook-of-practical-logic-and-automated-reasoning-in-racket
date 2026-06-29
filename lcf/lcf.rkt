@@ -18,6 +18,9 @@
         [`(var ,y) #f]
         [`(fn ,f ,@args) (ormap (λ (a) (occurs-in s a)) args)])))
 
+;; Is the term t free in fm? For a quantifier (Q y p), t is free in the body only
+;; when (a) the bound variable y does not occur in t -- otherwise that variable of
+;; t would be captured here, so t is not "free" -- and (b) t is free in p.
 (define (free-in t fm)
   (match fm
     [(or #t #f) #f]
@@ -46,6 +49,8 @@
   `(imp (imp (imp ,p #f) #f) ,p))
 (define (axiom-allimp x p q)
   `(imp (forall ,x (imp ,p ,q)) (imp (forall ,x ,p) (forall ,x ,q))))
+;; p -> (forall x. p) is sound only when x is not free in p (otherwise it would
+;; capture a genuinely free occurrence and assert something stronger).
 (define (axiom-impall x p)
   (if (free-in `(var ,x) p)
       (error 'axiom-impall "variable free in formula")
@@ -56,8 +61,13 @@
       `(exists ,x ,(mk-eq `(var ,x) t))))
 (define (axiom-eqrefl t)
   (mk-eq t t))
+;; foldr over the parallel argument lists builds a right-associative chain of
+;; equality hypotheses:  s1=t1 -> (s2=t2 -> ... -> f(s..) = f(t..)).  A 0-ary f
+;; gives just the conclusion f = f.
 (define (axiom-funcong f lefts rights)
   (foldr (λ (s t p) `(imp ,(mk-eq s t) ,p)) (mk-eq `(fn ,f ,@lefts) `(fn ,f ,@rights)) lefts rights))
+;; Like axiom-funcong, but the conclusion is the implication P(s..) -> P(t..):
+;; s1=t1 -> (s2=t2 -> ... -> (P(s..) -> P(t..))).
 (define (axiom-predcong p lefts rights)
   (foldr (λ (s t acc) `(imp ,(mk-eq s t) ,acc))
          `(imp (atom (rel ,p ,@lefts)) (atom (rel ,p ,@rights)))

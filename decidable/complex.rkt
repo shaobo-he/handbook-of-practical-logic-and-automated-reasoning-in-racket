@@ -134,6 +134,10 @@
       (values (poly-cmul (/ 1 h) p) (< h 0))))
 
 ;; ===== pseudo-division =====
+;; Pseudo-divide s by p in the head variable, returning (k r) such that
+;; a^k * s = q*p + r with deg(r) < deg(p), where a is p's leading coefficient.
+;; Multiplying by a^k sidesteps dividing by a coefficient whose sign/vanishing is
+;; not yet known -- exactly what the sign-based QE below needs.
 (define (pdivide vars s p)
   (define (shift1 x pp)
     `(fn + ,zero (fn * (var ,x) ,pp)))
@@ -189,6 +193,9 @@
             (cons (cons p* s*) (subtract sgns (list (cons p* s0))))
             (error 'assertsign "assertsign")))))
 
+;; If the sign database already pins down whether pol is zero, take that branch
+;; directly; otherwise split the formula into a pol = 0 case and a pol /= 0 case,
+;; extending sgns accordingly in each, so later steps never guess a sign.
 (define (split-zero sgns pol cont-z cont-n)
   (define z
     (with-handlers ([exn:fail? (λ (e) #f)])
@@ -212,6 +219,11 @@
   (poly-nonzero vars sgns r))
 
 ;; ===== core elimination: exists x. (all eqs=0) /\ (all neqs<>0) =====
+;; Recursively eliminate x from a system of equations (eqs, all = 0) and
+;; disequations (neqs, all /= 0). Constant equations are resolved first against
+;; the sign database sgns; otherwise the lowest-degree equation p is used to
+;; reduce the rest by pseudo-division, branching on the sign of p's head
+;; coefficient. The sign database keeps every such branch consistent.
 (define (cqelim vars eqs-neqs sgns)
   (define eqs (car eqs-neqs))
   (define neqs (cdr eqs-neqs))
@@ -244,6 +256,8 @@
                   (poly-nondiv vars sgns* p (poly-pow vars q (degree vars p)))])))))))
 
 ;; ===== full QE =====
+;; Seed sign database: 1 is positive and 0 is zero. assertsign extends it with
+;; new sign facts as elimination discovers them.
 (define init-sgns (list (cons one 'positive) (cons zero 'zero)))
 
 (define (basic-complex-qelim vars fm)

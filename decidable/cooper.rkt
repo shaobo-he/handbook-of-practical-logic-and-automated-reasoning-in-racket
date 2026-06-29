@@ -34,6 +34,10 @@
 (define one (mk-numeral 1))
 
 ;; ===== canonical linear-term arithmetic =====
+;; A canonical linear term is c1*x1 + ... + cn*xn + k with the variables in
+;; `vars` order and every coefficient ci a nonzero numeral. linear-cmul,
+;; linear-add, etc. all preserve this normal form, which is what lets the
+;; quantifier-elimination steps below pattern-match on (fn * coeff x) directly.
 (define (linear-cmul n tm)
   (if (= n 0)
       zero
@@ -133,6 +137,10 @@
         `(and (atom (rel divides ,(mk-numeral l) ,xp)) ,(adjustcoeff x l fm)))))
 
 ;; ===== minus-infinity formula and divisor LCM =====
+;; minusinf replaces each atom by its truth value as x -> -infinity (the unity
+;; coefficient of x is +/-1 here). An equality 0 = x + a is eventually false, and
+;; 0 < x + a is eventually false while 0 < -x + a is eventually true; divisibility
+;; atoms are periodic so they are left unchanged.
 (define (minusinf x fm)
   (match fm
     [`(atom (rel = (fn |0|) (fn + (fn * (fn |1|) ,y) ,a)))
@@ -157,6 +165,10 @@
     [_ 1]))
 
 ;; ===== B-set and linear replacement =====
+;; The B-set collects the witness points just below which an atom can change
+;; truth value (extracted from x = a, ~(x = a) and 0 < x + a literals). Cooper's
+;; theorem says a solution, if any, is found either at -infinity or at b + j for
+;; some b in the B-set and small offset j.
 (define (bset x fm)
   (match fm
     [`(not (atom (rel = (fn |0|) (fn + (fn * (fn |1|) ,y) ,a))))
@@ -185,6 +197,10 @@
     [_ fm]))
 
 ;; ===== core elimination =====
+;; (exists x . p) becomes a finite disjunction. p-inf is the formula valid as
+;; x -> -infinity; bs is the B-set of candidate witnesses; js ranges over one
+;; full period 1..lcm-of-divisors. stage j ORs the -infinity branch (shifted by j)
+;; with the b+j branch for each b in bs, and the answer is the OR over all j.
 (define (cooper vars fm)
   (match fm
     [`(exists ,x0 ,p0)

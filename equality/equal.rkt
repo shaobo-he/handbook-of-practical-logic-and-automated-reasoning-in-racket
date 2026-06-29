@@ -18,6 +18,7 @@
 (define (mk-eq s t)
   `(atom (rel = ,s ,t)))
 
+;; raises unless fm is a well-formed equation (an atom over rel = of two args)
 (define (dest-eq fm)
   (match fm
     [`(atom (rel = ,s ,t)) (cons s t)]
@@ -36,6 +37,9 @@
               fm))
 
 ;; ===== congruence axioms =====
+;; For an n-ary function f, the axiom  x1=y1 /\ ... /\ xn=yn -> f(x...) = f(y...).
+;; A constant (n = 0) needs no axiom: c = c already holds by reflexivity. The
+;; variables are named x1..xn (left side) and y1..yn (right side).
 (define (function-congruence fn)
   (define f (car fn))
   (define n (cdr fn))
@@ -52,6 +56,8 @@
         (define con (mk-eq `(fn ,f ,@ax) `(fn ,f ,@ay)))
         (list (foldr mk-forall `(imp ,ant ,con) (append xs ys))))))
 
+;; Like function-congruence, but the consequent is an implication P(x...) -> P(y...)
+;; rather than an equality: predicates denote truth values, not objects.
 (define (predicate-congruence pn)
   (define p (car pn))
   (define n (cdr pn))
@@ -68,6 +74,8 @@
         (define con `(imp (atom (rel ,p ,@ax)) (atom (rel ,p ,@ay))))
         (list (foldr mk-forall `(imp ,ant ,con) (append xs ys))))))
 
+;; Reflexivity plus the combined (x=y /\ x=z) -> y=z; together these give a full
+;; equivalence relation -- symmetry and transitivity both follow from the second.
 (define equivalence-axioms
   (list '(forall x (atom (rel = (var x) (var x))))
         '(forall x
@@ -77,6 +85,9 @@
                                            (atom (rel = (var x) (var z))))
                                       (atom (rel = (var y) (var z)))))))))
 
+;; Reduce equality reasoning to ordinary first-order logic: if = occurs, return
+;; (imp <all relevant congruence and equivalence axioms> fm), which is valid over
+;; plain FOL exactly when fm is valid in the theory of equality.
 (define (equalitize fm)
   (define allpreds (predicates fm))
   (if (not (member (cons '= 2) allpreds))

@@ -115,6 +115,10 @@
 (define (reduceb cm pols)
   (tryfind (λ (p) (reduce1 cm p)) pols))
 
+;; Fully reduce pol modulo the basis pols (the multivariate division algorithm).
+;; For the leading monomial cm: if some basis poly's lead divides it, reduceb
+;; subtracts the appropriate multiple and we recurse; if none divides (reduceb
+;; raises), that monomial is irreducible, so we keep it and reduce the tail.
 (define (reduce pols pol)
   (match pol
     ['() '()]
@@ -123,6 +127,9 @@
        (reduce pols (mpoly-add (reduceb cm pols) ptl)))]))
 
 ;; ===== S-polynomial and Grobner basis =====
+;; S-polynomial: take m = lcm of the two leading monomials, scale each polynomial
+;; by m / its-own-lead so the leading terms coincide, then subtract -- cancelling
+;; those leads and exposing the next obstruction Buchberger's algorithm must clear.
 (define (spoly pol1 pol2)
   (match* (pol1 pol2)
     [('() _) '()]
@@ -139,14 +146,21 @@
     [`(,p1p2 . ,opairs)
      (define sp (reduce basis (spoly (car p1p2) (cdr p1p2))))
      (cond
+       ;; S-poly reduced to 0: this pair is resolved, move on.
        [(null? sp) (grobner basis opairs)]
+       ;; reduced to a nonzero constant (all exponents 0): 1 is in the ideal, so
+       ;; the system is inconsistent -- short-circuit with that witness basis.
        [(andmap (λ (cm) (andmap (λ (e) (= e 0)) (cdr cm))) sp) (list sp)]
+       ;; otherwise sp is a genuinely new basis element; pair it with all others.
        [else (grobner (cons sp basis) (append opairs (map (λ (p) (cons p sp)) basis)))])]))
 
 (define (groebner basis)
   (grobner basis (distinctpairs basis)))
 
 ;; ===== Rabinowitsch trick: p =/= 0  becomes  1 - v*p = 0 =====
+;; Encode a disequation p /= 0 as the equation 1 - v*p = 0 in a fresh variable v:
+;; it is solvable iff p can be inverted, i.e. iff p /= 0. This turns the
+;; universal-theory decision problem into pure ideal membership.
 (define (rabinowitsch vars v p)
   (mpoly-sub (mpoly-const vars 1) (mpoly-mul (mpoly-var vars v) p)))
 

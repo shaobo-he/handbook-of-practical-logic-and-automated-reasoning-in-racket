@@ -40,7 +40,10 @@
      (unify env (list (cons `(fn ,p1 ,@a1) `(fn ,p2 ,@a2))))]
     [_ (error 'unify-complementsf "unify_complementsf")]))
 
-;; move a "later implication" to the front
+;; Rearranges the nested implication fm so that the specific "later" implication
+;; matching i is brought to the front of the sequent, using axiom-distribimp and
+;; imp-trans to shuffle the antecedents. Used during de-Skolemization to expose
+;; the Skolem hypothesis that needs discharging.
 (define (use-laterimp i fm)
   (match fm
     [`(imp (imp ,q* ,s) (imp ,(and i* `(imp ,q ,p)) ,r))
@@ -82,6 +85,11 @@
   (modusponens (use-laterimp (onformula (car es) skh) (concl th)) th))
 
 ;; ===== main refutation (cont takes (proof-builder esk); esk = (env sks k)) =====
+;; CPS tableau: instead of returning a theorem directly, each case transforms the
+;; goal and threads a continuation `cont` -- a deferred proof builder that, once
+;; the branch closes and the unifier environment is known, applies the matching
+;; kernel rule. `esk` carries the unification environment, the Skolem map, and a
+;; counter k for fresh universal-instantiation variables.
 (define (lcftab skofun fms lits n cont esk)
   (if (< n 0)
       (error 'lcftab "no proof")
@@ -160,6 +168,11 @@
        (f (car l)))]))
 
 ;; ===== identify quantified subformulas, accounting for parity =====
+;; e is the current polarity (#t = positive). Negation flips it, and an
+;; implication p->q is read as (or (not p) q) so the antecedent flips too. An
+;; `exists` is collected only at positive polarity and a `forall` only at
+;; negative polarity -- i.e. exactly the quantifiers that become existential
+;; (and so require Skolemization) once the goal is negated.
 (define (quantforms e fm)
   (match fm
     [`(not ,p) (quantforms (not e) p)]
@@ -195,6 +208,11 @@
   (map skofun (range 1 (add1 (length skts))) skts))
 
 ;; ===== matching =====
+;; One-directional match of a pattern formula against an instance (the pair fp),
+;; extending env. For matching quantifiers (same connective and bound name) a
+;; fresh variable z is substituted into both bodies, they are matched
+;; recursively, then z is removed from the environment with undefine so it does
+;; not leak as a real binding -- this is what makes the match alpha-safe.
 (define (form-match fp env)
   (match fp
     [`(#f . #f) env]
@@ -230,6 +248,10 @@
     (tsubst (solve env) tm))
   (thp (cons ifn (onformula ifn (foldr mk-skol #f sks)))))
 
+;; Eliminates one Skolem variable: generalises it with gen-right, alpha-converts
+;; the freshly bound variable back to the original name, then threads the
+;; implications with imp-trans before discharging the double negation.
+;; deskolcont applies this repeatedly (via repeat) to remove all of them.
 (define (elim-skolemvar th)
   (match (concl th)
     [`(imp (imp ,pv ,(and apx `(forall ,x ,px))) ,q)
@@ -242,6 +264,11 @@
      (modusponens (axiom-doubleneg q) (right-mp th2 th4))]
     [_ (error 'elim-skolemvar "elim_skolemvar")]))
 
+;; Final de-Skolemization continuation: apply the unifier to the Skolem terms,
+;; then rename them to Y_1, Y_2, ... in decreasing termsize order. Sorting by
+;; size (largest first) ensures a nested Skolem term is renamed before the
+;; smaller terms it contains, giving a deterministic, capture-free elimination
+;; order for the repeated elim-skolemvar steps below.
 (define (deskolcont thp esk)
   (match-define `(,env ,sks ,k) esk)
   (define (ifn tm)

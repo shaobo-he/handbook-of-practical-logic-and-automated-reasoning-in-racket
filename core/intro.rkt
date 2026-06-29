@@ -29,6 +29,9 @@
     [_ (simplify1 e)]))
 
 ;; ===== lexical analysis =====
+;; build a character predicate from the set of characters in s.
+;; (and (member ...) #t) forces a genuine boolean rather than the matched
+;; tail returned by member, so callers can rely on #t/#f.
 (define (matches s)
   (define chars (string->list s))
   (λ (c) (and (member c chars) #t)))
@@ -48,7 +51,11 @@
        (values (cons c tok) rest))]
     [_ (values '() inp)]))
 
-;; turn a list of characters into a list of token strings
+;; turn a list of characters into a list of token strings.
+;; After skipping leading whitespace we classify the next character to pick
+;; the predicate for the rest of the token: an alphanumeric run (identifiers
+;; and numbers), a symbolic run (operators), or a lone punctuation char
+;; (the #f predicate stops immediately, so brackets/commas tokenize singly).
 (define (lex inp)
   (let-values ([(_ rest) (lexwhile space inp)])
     (match rest
@@ -63,6 +70,13 @@
          (cons (list->string (cons c toktl)) (lex rest2)))])))
 
 ;; ===== parsing =====
+;; The three parsers form a precedence cascade via mutual recursion:
+;;   parse-expression handles + (lowest precedence),
+;;   parse-product    handles * (binds tighter than +),
+;;   parse-atom       handles literals, variables, and parenthesised groups.
+;; Each level parses the next-tighter level first, so * groups before +.
+;; Both operators are right-associative here (the recursive call is on the
+;; same level's tail), e.g. "1+2+3" parses as (add 1 (add 2 3)).
 (define (parse-expression i)
   (let-values ([(e1 i1) (parse-product i)])
     (match i1
@@ -102,6 +116,11 @@
   (make-parser parse-expression s))
 
 ;; ===== printing (with minimal bracketing) =====
+;; pr is the precedence of the surrounding context. add has precedence 2,
+;; mul has precedence 4; a subexpression is parenthesised only when its
+;; operator binds looser than the context demands (the (< 2 pr)/(< 4 pr)
+;; guards). The left operand is printed at one level higher (3 / 5) than the
+;; right so that same-precedence nesting groups to the left as expected.
 (define (string-of-exp pr e)
   (match e
     [`(var ,s) s]

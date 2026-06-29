@@ -24,6 +24,11 @@
       base))
 
 ;; ===== core MESON (basic version) =====
+;; Two ways to discharge goal g, via exceptions for backtracking: the body first
+;; tries the REDUCTION rule (close g by unifying it with the negation of an
+;; ancestor); if that raises, the handler tries EXTENSION (pick a contrapositive
+;; rule, unify its head with g, and recurse on its body as new subgoals). n is the
+;; remaining inference budget; k threads fresh variables.
 (define (mexpand001 rules ancestors g cont env n k)
   (cond
     [(< n 0) (error 'meson "Too deep")]
@@ -77,6 +82,9 @@
          n1
          k))
 
+;; solve a list of goals, splitting the work and the depth budget in half
+;; (divide-and-conquer); expand2 tries one half-order, and on failure the handler
+;; retries with the halves swapped, so effort is spent on whichever half is harder.
 (define (mexpands002 rules ancestors gs cont env n k)
   (cond
     [(< n 0) (error 'meson "Too deep")]
@@ -102,6 +110,8 @@
 (define (mexpand002 rules ancestors g cont env n k)
   (cond
     [(< n 0) (error 'meson "Too deep")]
+    ;; cut off looping branches: fail if g already appears (unifies unchanged) in
+    ;; its own ancestor chain — the key efficiency gain of this version over 001
     [(ormap (λ (a) (meson-equal? env g a)) ancestors) (error 'meson "repetition")]
     [else
      (with-handlers ([exn:fail? (λ (e)

@@ -35,7 +35,9 @@
 (define (atoms fm)
   (atom-union (λ (a) (list a)) fm))
 
-;; run subfn on every valuation of ats, conjoining the results
+;; run subfn on every valuation of ats, conjoining the results.
+;; v^ extends v with p |-> t (shadowing any earlier binding of p); recursing on
+;; both t=#f and t=#t enumerates the whole truth table without materialising it.
 (define (onallvaluations subfn v ats)
   (match ats
     ['() (subfn v)]
@@ -95,6 +97,8 @@
 
 ;; ===== simplification =====
 (define (psimplify1 fm)
+  ;; when one operand is a constant, pick the simplified result per operator:
+  ;; v1/v2/v3 are the replacements to use for and/or/iff respectively
   (define (v o v1 v2 v3)
     (match o
       ['and v1]
@@ -138,6 +142,8 @@
     [_ `(not ,fm)]))
 
 ;; ===== negation normal form =====
+;; push negations inward (De Morgan etc.) and eliminate ==> and <=>, so the
+;; result is built only from and/or/not/atom/#t/#f with negations on atoms
 (define (nnf-raw fm)
   (match fm
     [`(and ,p ,q) `(and ,(nnf-raw p) ,(nnf-raw q))]
@@ -196,6 +202,9 @@
      (append (allsatvaluations subfn (v^ #f) ps) (allsatvaluations subfn (v^ #t) ps))]))
 
 ;; ===== disjunctive / conjunctive normal form (set-of-sets) =====
+;; here a DNF is a list of clauses, each clause a list of literals. distrib
+;; multiplies out two such sets: distributing /\ over \/ pairs up clauses and
+;; unions each pair (the literal sets of the two conjoined clauses).
 (define (distrib s1 s2)
   (setify (allpairs union s1 s2)))
 
@@ -223,6 +232,8 @@
   (define-values (pos neg) (partition positive lits))
   (not (null? (intersect pos (image negate neg)))))
 
+;; drop trivial (always-false) clauses, then remove any clause subsumed by a
+;; strictly smaller one: a sub-clause d^ ⊂ d makes d redundant in a DNF.
 (define (simpdnf fm)
   (cond
     [(equal? fm #f) '()]

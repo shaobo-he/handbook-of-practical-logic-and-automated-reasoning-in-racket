@@ -99,6 +99,10 @@
     [`(exists ,x (and (atom (rel ,a (var ,y) ,t)) ,p)) (dhquant ormap v x y a t p)]
     [_ (error 'dholds "not an arithmetical delta-formula")]))
 
+;; Evaluate a bounded quantifier (forall/exists via pred = andmap/ormap). Checks
+;; well-formedness -- the bound variable x must be the one compared and must not
+;; occur in the bounding term t -- then ranges x over 0..m, where m is t-1 for a
+;; strict `<` bound and t for `<=`.
 (define (dhquant pred v x y a t p)
   (if (or (not (equal? x y)) (member x (fvt t)))
       (error 'dholds "not delta")
@@ -129,6 +133,9 @@
     [`(forall ,x ,p)
      #:when (and (not (= n 0)) (eq? c 'pi))
      (classify c n p)]
+    ;; Bounded quantifiers (exists x<=t / forall x<t, x not free in t) do not raise
+    ;; the quantifier level: they stay within the current class, which is what
+    ;; keeps Delta_0 closed under them.
     [`(exists ,x (and (atom (rel ,(or '< '<=) (var ,y) ,t)) ,p))
      #:when (and (equal? x y) (not (member x (fvt t))))
      (classify c n p)]
@@ -139,6 +146,10 @@
     [`(forall ,x ,p) (and (not (= n 0)) (classify (opp c) (- n 1) fm))]))
 
 ;; ===== verification of true Sigma_1 / refutation of false Pi_1 =====
+;; sign is either the identity (verify a Sigma_1 truth) or negation (refute a
+;; Pi_1 falsehood); it is threaded through and re-applied at each boolean
+;; connective so the same recursion does both jobs. An unbounded quantifier is
+;; only searched (over 0..m) on the side where sign makes it existential.
 (define (veref sign m v fm)
   (match fm
     [#f (sign #f)]
@@ -273,6 +284,10 @@
   (imp-trans-chain (list th1 th2) (eq-trans s t u)))
 
 ;; ===== Robinson ground-term evaluation (produces kernel proofs) =====
+;; One reduction step for a binary operation whose left argument is already a
+;; numeral: pick the Robinson base case (add-0/mul-0) when it is 0, or the
+;; successor case (add-suc/mul-suc) when it is S(u), then recurse with robeval on
+;; the resulting right-hand side.
 (define (robop tm)
   (match tm
     [`(fn ,op (fn |0|) ,t)
@@ -283,6 +298,10 @@
      (define th2 (foldr right-spec (if (equal? op '+) add-suc mul-suc) (list t u)))
      (right-trans th2 (robeval (rhs (consequent (concl th2)))))]))
 
+;; Evaluate a ground arithmetic term to its numeral, returning a kernel proof
+;; |- robinson -> (tm = numeral). It reduces the leftmost argument first, uses
+;; rhs to read off the normal form reached so far, rewrites with funcong, and
+;; recurses -- building one long equality chain through the Robinson axioms.
 (define (robeval tm)
   (match tm
     [`(fn S ,t)
